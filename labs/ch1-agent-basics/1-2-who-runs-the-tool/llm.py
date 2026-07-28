@@ -168,10 +168,18 @@ def complete(prompt, system, backend=None):
 
 
 class HostedNotAvailable(Exception):
-    """Raised when the current backend has no built-in web search."""
+    """当前后端没有自带的联网搜索能力时抛出。"""
 
 
-def complete_hosted(prompt, max_turns=8):
+class HostedInterrupted(Exception):
+    """厂商那侧的流程没跑完（比如撞上轮数上限）时抛出。
+
+    这个失败本身很有教学意义：出问题时你**看不到它卡在哪一步**，
+    只知道「没跑完」。这正是 hosted 模式的代价。
+    """
+
+
+def complete_hosted(prompt, max_turns=30, attempts=3):
     """Let the PROVIDER search the web and answer. No loop of our own.
 
     Returns (answer_text, turns) where `turns` is how many internal steps the
@@ -186,26 +194,35 @@ def complete_hosted(prompt, max_turns=8):
             f"LAB_BACKEND=claude, or run the other modes."
         )
 
-    proc = subprocess.run(
-        ["claude", "-p", prompt,
-         # The one meaningful difference from _complete_claude: instead of
-         # forbidding built-in tools, we allow exactly one — WebSearch.
-         "--allowedTools", "WebSearch",
-         "--max-turns", str(max_turns),
-         "--output-format", "json"],
-        capture_output=True, text=True, timeout=TIMEOUT,
-    )
-    try:
-        payload = json.loads(proc.stdout)
-    except json.JSONDecodeError:
-        raise RuntimeError(
-            f"CLI output was not JSON (rc={proc.returncode}): {proc.stderr[:200]}")
+    # 和 _complete_claude 一样要重试：厂商那边跑几轮是不确定的，
+    # 实测这个问题通常 4 轮就够，但偶尔会多搜几次。
+    # max_turns 给足余量（没用到的轮次不花钱），再加重试兜底。
+    last = ""
+    for _ in range(attempts):
+        proc = subprocess.run(
+            ["claude", "-p", prompt,
+             # 和 _complete_claude 唯一实质的区别：那边禁止所有内置工具，
+             # 这边恰好放行一个 —— WebSearch。
+             "--allowedTools", "WebSearch",
+             "--max-turns", str(max_turns),
+             "--output-format", "json"],
+            capture_output=True, text=True, timeout=TIMEOUT,
+        )
+        try:
+            payload = json.loads(proc.stdout)
+        except json.JSONDecodeError:
+            last = f"CLI 输出不是 JSON（rc={proc.returncode}）：{proc.stderr[:200]}"
+            continue
 
-    if not payload.get("result"):
-        raise RuntimeError(
-            f"no result (rc={proc.returncode}, stop={payload.get('stop_reason')})")
+        if payload.get("result"):
+            return payload["result"], payload.get("num_turns")
 
-    return payload["result"], payload.get("num_turns")
+        # stop_reason == "tool_use" 意味着它还想继续调工具，却撞上了 max_turns。
+        last = (f"厂商跑到一半被打断了（rc={proc.returncode}，"
+                f"stop={payload.get('stop_reason')}，"
+                f"已跑 {payload.get('num_turns')} 轮 / 上限 {max_turns}）")
+
+    raise HostedInterrupted(last)
 
 
 def parse_json_reply(text):

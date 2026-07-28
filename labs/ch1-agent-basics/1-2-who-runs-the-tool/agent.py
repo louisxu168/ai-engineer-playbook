@@ -33,7 +33,7 @@ import urllib.parse
 import urllib.request
 
 from llm import (complete, complete_hosted, detect_backend, parse_json_reply,
-                 HostedNotAvailable)
+                 HostedNotAvailable, HostedInterrupted)
 
 
 # --------------------------------------------------------------------------
@@ -139,6 +139,17 @@ calls 是数组，互不依赖的工具可以一次全放进去。""",
         "hosted_blind": """  注意你看不到的东西：它搜了什么关键词？看了哪些网页？
   中间读到过什么？失败重试过吗？—— 全都没有。只有最后这段文字。""",
         "hosted_unavailable": "  ⚠️  {msg}",
+        "hosted_interrupted": "  ✗ hosted 模式没跑完：{msg}",
+        "hosted_interrupted_lesson": """
+  ── 顺带一提，这次失败正好是本实验的最好例证 ──
+
+  它没跑完。但**你无法知道它卡在哪一步** —— 搜到一半？读网页超时？
+  还是在反复改关键词？你手上只有「没跑完」三个字。
+
+  换成 diy 模式跑同一个问题，你会看到每一次搜索和每一次失败：
+      python3 agent.py diy "你的问题"
+
+  （想重试 hosted 就再跑一次，这个失败是不确定的，多试一次通常就好。）""",
         # --- 对比表 + 用法说明 ---
         "summary_title": "对比结果",
         "summary_mode": "模式：",
@@ -270,6 +281,19 @@ Any ONE of these will do. Install it, come back to this folder, run again:
   open? what did it read? did anything fail and get retried? -- none of it.
   Just this final block of text.""",
         "hosted_unavailable": "  !  {msg}",
+        "hosted_interrupted": "  x hosted mode did not finish: {msg}",
+        "hosted_interrupted_lesson": """
+  -- By the way, this failure is the best possible demo of this lab --
+
+  It didn't finish. But you have NO WAY to know where it got stuck: mid-search?
+  a page fetch that timed out? rewriting its query over and over? All you have
+  is "didn't finish".
+
+  Run the same question in diy mode and you'll see every search and every
+  failure:
+      python3 agent.py diy "your question"
+
+  (To retry hosted, just run it again -- this failure is non-deterministic.)""",
         # --- 对比表 + 用法说明 ---
         "summary_title": "COMPARISON",
         "summary_mode": "mode: ",
@@ -549,6 +573,15 @@ def run_hosted(task, verbose=True):
         if verbose:
             print("")
             print(t("hosted_unavailable", msg=str(error)))
+        return {"mode": "hosted", "answer": None, "turns": None,
+                "visible_steps": 0, "seconds": 0, "unavailable": True}
+    except HostedInterrupted as error:
+        # 重试若干次后厂商那侧仍未跑完。不要甩 traceback ——
+        # 而且这次失败本身就是本实验最好的例证，顺手讲一句。
+        if verbose:
+            print("")
+            print(t("hosted_interrupted", msg=str(error)))
+            print(t("hosted_interrupted_lesson"))
         return {"mode": "hosted", "answer": None, "turns": None,
                 "visible_steps": 0, "seconds": 0, "unavailable": True}
     elapsed = time.time() - start_time

@@ -29,7 +29,7 @@ runs on your existing Claude Code / Codex subscription.*
 ## 30 秒上手
 
 ```bash
-git clone https://github.com/xuweizhixin/ai-engineer-playbook.git
+git clone https://github.com/louisxu168/ai-engineer-playbook.git
 cd ai-engineer-playbook/labs/01-context
 pip install -r requirements.txt
 python3 agent.py          # 先看用法说明

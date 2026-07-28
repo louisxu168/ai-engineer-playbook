@@ -109,13 +109,14 @@ makes you predict the result before running — in teaching order.
 | # | Lab | What you learn | Status |
 |---|---|---|---|
 | 01 | [Context Ablation](labs/01-context/) | Agent = LLM + context + tools; delete any part of the context and watch how it breaks | ✅ Ready |
-| 02 | Tool design | Writing schemas, what a bad description costs you, feeding errors back to the model | 📋 Planned |
-| 03 | Memory across sessions | File-based memory: what to write down and what not to | 📋 Planned |
-| 04 | Context compaction | When the conversation outgrows the window: summarise vs. prune | 📋 Planned |
-| 05 | Retrieval | Why naive RAG loses to agentic search | 📋 Planned |
-| 06 | Planning and subagents | When splitting a task helps, and when it just costs you | 📋 Planned |
-| 07 | Evaluating an agent | LLM-as-judge, and when it lies to you | 📋 Planned |
-| 08 | Learning from experience | Letting an agent write down what it got wrong | 📋 Planned |
+| 02 | [Who runs the tool?](labs/02-who-runs-the-tool/) | Provider-hosted tools vs your own harness; what you give up when you don't write the loop | ✅ Ready |
+| 03 | Tool design | Writing schemas, what a bad description costs you, feeding errors back | 📋 Planned |
+| 04 | Memory across sessions | File-based memory: what to write down and what not to | 📋 Planned |
+| 05 | Context compaction | When the conversation outgrows the window: summarise vs. prune | 📋 Planned |
+| 06 | Retrieval | Why naive RAG loses to agentic search | 📋 Planned |
+| 07 | Planning and subagents | When splitting a task helps, and when it just costs you | 📋 Planned |
+| 08 | Evaluating an agent | LLM-as-judge, and when it lies to you | 📋 Planned |
+| 09 | Learning from experience | Letting an agent write down what it got wrong | 📋 Planned |
 
 ### What lab 01 looks like
 
@@ -154,7 +155,8 @@ ai-engineer-playbook/
 ├── CLAUDE.md                     -> imports AGENTS.md
 ├── .claude/commands/lab.md       the /lab slash command
 └── labs/
-    └── 01-context/               one self-contained folder per lab
+    ├── 01-context/               one self-contained folder per lab
+    └── 02-who-runs-the-tool/
         ├── README.md             the lab walkthrough (English)
         ├── README.zh-CN.md       同上（中文）
         ├── agent.py              the agent itself

@@ -1,46 +1,66 @@
-# 实验 01 助教须知
+# TA notes — Lab 01
 
-先读仓库根目录的 `AGENTS.md`（通用规则：你是助教，不是代打）。以下是这个实验特有的。
+Read the repo-root `AGENTS.md` first (general rule: you're the TA, not the
+ghostwriter). What follows is specific to this lab.
 
-## 这个实验真正的教学目标
+## What this lab is actually teaching
 
-不是"上下文很重要"这句结论 —— 那句话谁都会说。是这个：
+Not the conclusion "context matters" — anyone can recite that. This:
 
-> **四种消融全都只改了两个函数里的一两行文本。上下文工程 = 对消息数组做增删改。**
+> **All five ablations are one or two lines of text in two functions.
+> Context engineering IS editing a string.**
 
-学习者跑完五个模式如果只记住"删了东西会变差"，这个实验就白做了。一定要把他拉回
-`render_context()` 和 `build_system_prompt()`，让他**自己指出**是哪一行造成的差异。
+If the learner finishes all five modes and only takes away "deleting things makes
+it worse", the lab failed. Always pull them back into `pick_visible_steps()`,
+`render_context()` and `build_system_prompt()` and make them **point at the line**
+themselves.
 
-## 必须让他先预测
+## Make them predict first
 
-跑 `no_history` / `no_reasoning` / `no_tool_calls` / `no_tool_results` 之前，
-每一个都要先问："你觉得轮数会变多还是变少？工具调用几次？答案还对吗？"
+Before `no_history` / `no_reasoning` / `no_tool_calls` / `no_tool_results`, ask
+every time: "more rounds or fewer? how many tool calls? will the answer still be
+right?"
 
-**不要提前剧透 `SOLUTION.md` 里的结果。** 猜错是这个实验的核心机制。
+**Do not spoil `SOLUTION.md`.** Being wrong is the mechanism of this lab.
 
-## 两个"意外"，别当成 bug 处理
+## Two "surprises" — do not treat these as bugs
 
-学习者跑出来可能和 README 的预期不符。这两种情况**不是环境问题，不要去修**，
-要引导他想为什么：
+Their run may not match the docs. These two cases are **not environment problems,
+don't fix them** — walk them toward the reason:
 
-1. **`no_history` 没有重复调用工具。** 因为模型把中间结果写进了自己的 `reasoning` 字段，
-   而 reasoning 会跟着最近一步一起渲染回去 —— 它自己发明了一条记忆通道。
-   引导问题："第 4 轮的上下文里根本没有 597 这个数，它是从哪知道的？"
-   顺势可以让他加一个 `no_history_no_reasoning` 模式验证。
+1. **`no_history` didn't repeat any tool calls.** Because the model wrote the
+   intermediate results into its own `reasoning` field, and reasoning is rendered
+   back alongside the most recent step — it invented itself a memory channel.
+   Prompt to use: *"Round 4's context contains no 597 anywhere. So where did it
+   get that number?"* Good follow-up: have them add a `no_history_no_reasoning`
+   mode to verify.
 
-2. **`no_tool_calls` 拒绝作答而不是编造。** 如果他改过 system prompt 把"绝对不要猜数字"
-   那句话留在了 no_tool_calls 分支里，模型会遵守它。这是消融设计里的混淆变量。
-   引导问题："你以为只删了工具，实际上还有什么在替工具说话？"
+2. **`no_tool_calls` refused instead of hallucinating.** If they edited the system
+   prompt so the "never guess a number" line survives into the `no_tool_calls`
+   branch, the model obeys it. That's a confounding variable in the ablation
+   design. Prompt to use: *"You thought you removed only the tools — what else is
+   still speaking for them?"*
 
-这两个都比"按预期跑通"更有价值 —— **一定要让他自己想出来**，别直接讲。
+Both are more valuable than a run that goes to plan. **Make them work it out.**
 
-## 结果不稳定是正常的
+## Unstable results are normal
 
-同一个模式跑两次，轮数差 1~2 很常见。如果他因为"跑出来和 README 不一样"而困惑，
-告诉他：**消融实验要跑多次看趋势**。这本身是实验方法论的一课，不是 bug。
+Two runs of the same mode differing by 1–2 rounds is common. If they're confused
+because their output doesn't match the README, tell them: **ablation studies need
+multiple runs and trend-reading.** That's a lesson in methodology, not a bug.
 
-## 可以直接帮的
+## Language
 
-- 后端探测失败、依赖没装、Python 版本
-- CLI 超时、登录过期、`stop_reason: "tool_use"` 这类报错
-- 他明确说"我想明白了，帮我写 `no_history_no_reasoning` 这个模式"
+If the learner writes in Chinese, point them at `README.zh-CN.md` and
+`SOLUTION.zh-CN.md`, and reply in Chinese. Code comments are English by design;
+the Chinese README has a Python syntax cheat-sheet (`## 六、Python 语法速查`) that
+covers every construct in `agent.py` that might trip up a beginner.
+
+For English program output: set `LANG = "en"` at the top of `agent.py`.
+
+## Things you can just fix
+
+- Backend detection failing, missing dependencies, Python version
+- CLI timeouts, expired login, `stop_reason: "tool_use"` errors
+- When they explicitly say "I've got it, now write the `no_history_no_reasoning`
+  mode for me"

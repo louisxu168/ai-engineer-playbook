@@ -1,299 +1,341 @@
-# 实验 01：上下文消融
+# Lab 01: Context Ablation
 
-**要搞明白的问题**：Agent 的"上下文"到底是什么？删掉其中一部分，它会怎么坏？
+**English** · [简体中文](README.zh-CN.md)
+
+**The question:** what exactly *is* an agent's "context", and how does it break
+when you delete a piece of it?
 
 ---
 
-## 一、先说清楚一件事
+## 1. The one idea
 
-> **Agent = LLM + 上下文 + 工具，套在一个 while 循环里。**
+> **Agent = LLM + context + tools, wrapped in a while loop.**
 
-LLM 是个纯函数：`messages -> 下一条 message`。它没有记忆，也**不能执行任何东西**。
+An LLM is a pure function: text in, text out. It has no memory, and it
+**cannot execute anything**.
 
-它能做的只有一件事：输出一段 JSON 说「我想调 `search_products('keyboard')`」。
-真正跑这个函数的是**你的 Python**，然后你把返回值拼回 `messages` 里再问一次。
-循环到它不再要求调工具为止。
+The only thing it can do is emit some JSON saying *"I'd like to call
+`search_products('keyboard')`"*. The thing that actually runs that function is
+**your Python**. You paste the return value back into the text and ask again.
+Loop until it stops asking for tools and gives an answer instead.
 
 ```
 loop:
-    reply = llm(messages)              # 模型决定下一步做什么
-    if reply 里没有工具调用: 结束        # 它给答案了 → 退出
-    for 每个工具调用:
-        result = 你的代码去执行(...)     # 模型跑不了，你跑
-        messages.append(result)        # 把结果塞回去
+    reply = llm(messages)              # model decides what to do next
+    if reply has no tool calls: DONE   # it answered -> exit
+    for each tool call:
+        result = your_code_runs_it(...)   # the model can't; you can
+        messages.append(result)           # paste the result back
 ```
 
-这就是 ReAct 循环的全部。`agent.py` 里它是 `run()` 函数，大约 30 行。
+That's the whole ReAct loop. In `agent.py` it's `run()` — about 30 lines.
 
-**要死死记住的一点**：模型是个会说 JSON 的规划器，你是它的手。
+**The thing to internalise:** the model is a planner that speaks JSON. You are
+its hands.
 
-### 一轮可以调多个工具（并行工具调用）
+### One round can call several tools (parallel tool calls)
 
-上面的伪代码里 `for 每个工具调用` 是复数——**一条模型回复里可以同时点名好几个工具**。
-真实 API（Anthropic / OpenAI）里，一条 assistant 消息可以带多个 `tool_use` 块，
-你把它们全执行完，再把所有结果**放在同一条消息里**一起返回。
+Note that `for each tool call` is plural — **one model reply can name several
+tools at once**. In real APIs (Anthropic, OpenAI) a single assistant message
+can carry multiple `tool_use` blocks; you run them all and return every result
+**in one message**.
 
-能不能并行，取决于**有没有数据依赖**：
+Whether calls can be parallel comes down to **data dependency**:
 
-| 调用 | 依赖谁 | 能并行吗 |
+| Call | Depends on | Parallel? |
 |---|---|---|
-| `search_products("keyboard")` → 199 | 无 | ✅ 这两个互不相干 |
-| `get_rate("USD","CNY")` → 7.24 | 无 | ✅ 可以一起调 |
-| `calc("199 * 3")` → 597 | 上面第一个 | ❌ 得先拿到 199 |
-| `calc("597 * 7.24")` | 前面两个 | ❌ 得先拿到 597 和 7.24 |
+| `search_products("keyboard")` → 199 | nothing | ✅ independent of the next one |
+| `get_rate("USD","CNY")` → 7.24 | nothing | ✅ can go together |
+| `calc("199 * 3")` → 597 | the first one | ❌ needs 199 first |
+| `calc("597 * 7.24")` | the two above | ❌ needs 597 and 7.24 |
 
-所以这个任务的最优是 **3 轮**（1+2 并行 → 3 → 4），而不是 4 轮。
+So the optimum for this task is **3 rounds** (1+2 together → 3 → 4), not 4.
 
-**省下的不是工具调用次数，是往返模型的次数。** 每次往返要等模型 6~13 秒，
-本地函数只要几微秒——往返才是耗时大头。这也是为什么真实 agent 都很在意并行。
+**What you save is round trips, not tool calls.** Each round trip waits
+6–13 seconds on the model; a local function takes microseconds. Round trips are
+the entire cost. That's why real agents care about parallelism.
 
-> 有个坑值得记：真实 API 里，多个 `tool_result` **必须放在同一条消息里**返回。
-> 拆成多条的话，模型会慢慢学会「算了我还是一个一个来吧」，并行能力就被你训没了。
+> Worth remembering: in real APIs, multiple `tool_result` blocks **must go back
+> in a single message**. Split them across messages and the model gradually
+> learns "I'd better do these one at a time" — you train the parallelism out of it.
 
-### 那「依赖关系」是谁在保证？
+### So who enforces the dependencies?
 
-这是个关键问题，答案可能和你想的不一样：**判断在 prompt 层，兑现在代码层，而且没人校验。**
+Key question, and the answer may surprise you: **the judgement happens in the
+prompt, the enforcement happens in the loop, and nothing validates either.**
 
-| | 谁负责 | 在哪一层 |
+| | Who does it | Which layer |
 |---|---|---|
-| **判断**哪些能并行 | 模型自己想 | Prompt 层 —— 就是 `PROTOCOL` 里那两句话 |
-| **兑现**依赖顺序 | 循环结构 | 代码层 —— 想用上一步结果，只能等下一轮 |
+| **Deciding** what can be parallel | the model, on its own | Prompt — literally two sentences in `sys_protocol` |
+| **Enforcing** the ordering | the loop structure | Code — to use a result you must wait a round |
 
-`agent.py` 里全部的「依赖管理」就是 `PROTOCOL` 中的这两句：
+The entire "dependency management" in `agent.py` is these two lines of prose:
 
 ```
-· 如果几个工具彼此不依赖，就一次全放进去
-· 如果后一个工具需要前一个的返回值，那就只放前一个
+- If the tools are INDEPENDENT, put them all in one reply.
+- If a later tool needs an earlier one's return value, request only the
+  earlier one now.
 ```
 
-**代码里没有任何一行在校验它判断得对不对。** 没有依赖图、没有拓扑排序、没有检查。
-模型说并行，`run()` 就 `for` 循环全跑一遍。
+**Not one line of code checks whether it got that right.** No dependency graph,
+no topological sort, no validation. The model says parallel, `run()` runs them.
 
-那判断错了会怎样？实测中两种情况都出现过：
+So what happens when it judges wrong? Both cases show up in practice:
 
-**情况一，它绕过依赖**（正常运行时观察到的）：
+**Case 1 — it routes around the dependency:**
 
 ```python
-[工具] calc({'expression': '199.0 * 3'})           -> 597.0
-[工具] calc({'expression': '199.0 * 3 * 7.24'})    -> 4322.28
+[tool] calc({'expression': '199.0 * 3'})           -> 597.0
+[tool] calc({'expression': '199.0 * 3 * 7.24'})    -> 4322.28
 ```
 
-第二个调用概念上依赖第一个（要先有 597），但它没写 `597 * 7.24`，而是把 `199.0 * 3`
-**原地展开**了 —— 因为 199 和 7.24 上一轮已经拿到了，值能直接填进去，依赖就消失了。
+The second call *conceptually* depends on the first, but instead of writing
+`597 * 7.24` it **inlined `199.0 * 3`** — it already had 199 and 7.24 from the
+previous round, so it could substitute the values and the dependency vanished.
 
-**情况二，它绕不过去，就翻车**（`no_tool_results` 模式里观察到的）：
+**Case 2 — it can't route around it, and breaks** (seen in `no_tool_results`):
 
 ```python
-[工具] calc({'expression': '<第5步得到的美元总价> * <汇率>'})
+[tool] calc({'expression': '<the USD total from step 5> * <the rate>'})
        -> {'error': "invalid syntax"}
 ```
 
-它想引用一个还没拿到的值，只能写占位符，`eval` 直接语法错误。
+It tried to reference a value it didn't have, could only write a placeholder,
+and `eval` failed.
 
-**根本机制在这里**：工具参数是**字面量**，不是引用。你没法在参数里写「上一个工具的返回值」。
-所以依赖不是被谁强制的，而是**物理上写不出来** —— 手里没那个数，就填不进去。
+**The underlying mechanism:** tool arguments are **literals, not references**.
+You cannot write "the previous tool's return value" into an argument. So
+dependencies aren't enforced by anyone — they're **physically unwritable**. If
+you don't have the number, you can't type it.
 
-### 三种做法，递进关系
+### Three approaches, in ascending order
 
-| 做法 | 依赖靠什么保证 | 代价 |
+| Approach | What guarantees the dependency | Cost |
 |---|---|---|
-| 串行（一轮一个） | 循环结构强制 | 往返多，慢 |
-| **并行（本实验现在的做法）** | **模型自觉 + 参数必须是字面量** | 判断错就出错误结果 |
-| 让模型写代码调工具 | 变量引用，语言级保证 | 需要沙箱 |
+| Sequential (one per round) | the loop structure | more round trips, slow |
+| **Parallel (what this lab does)** | **model judgement + literal-only arguments** | wrong judgement → wrong result |
+| Model writes code that calls tools | variable references, language-level | needs a sandbox |
 
-第三种是 Anthropic 的 Programmatic Tool Calling —— 模型直接写一段代码，
-在代码里调工具，依赖用变量表达：
+The third is Anthropic's Programmatic Tool Calling — the model writes actual
+code and calls tools from inside it, so dependencies are expressed as variables:
 
 ```python
 p = search_products("keyboard")
 r = get_rate("USD", "CNY")
-total = p["usd"] * 3 * r["rate"]      # 这才是真正的依赖
+total = p["usd"] * 3 * r["rate"]      # a real dependency
 ```
 
-中间结果也不进上下文，省 token。代价是要有个沙箱跑代码。
+Intermediate results never enter the context either, which saves tokens. The
+price is a sandbox to run it in.
 
-**我们现在停在中间那档 —— 这是真实 agent 的主流做法，不是简化。** 主流方案就是接受
-「模型可能判断错」，然后靠工具返回错误信息让它自己纠正。这也是为什么 `agent.py` 里
-每个工具出错时都 `return {"error": ...}` 而不是抛异常崩掉 —— 错误信息会被塞回上下文，
-让模型看见并改正。容错本身就是设计的一部分。
+**We sit in the middle tier — that's the mainstream approach, not a
+simplification.** The mainstream answer really is "accept that the model may
+judge wrong, and let tool errors flow back so it can correct itself." That's
+also why every tool in `agent.py` does `return {"error": ...}` instead of
+raising: the error text goes back into the context where the model can see and
+fix it. Fault tolerance is part of the design.
 
-## 二、"上下文"具体指什么
+---
 
-每次调用 LLM，你都要把**整个对话重新发一遍**。服务端不存任何东西。那个数组就是上下文，
-它由五部分组成：
+## 2. What "context" actually means
 
-| 组成部分 | 作用 | 谁写的 |
+Every time you call the LLM you resend **the entire conversation**. The server
+stores nothing. That array is the context, and it has five parts:
+
+| Part | Role | Written by |
 |---|---|---|
-| System prompt | agent 是谁、规则是什么 | 你 |
-| 工具清单 | 它能调什么，参数长什么样 | 你 |
-| User message | 任务 | 用户 |
-| Assistant message | 它的思考 + 它请求的工具调用 | 模型 |
-| Tool message | 你的代码返回了什么 | 你的代码 |
+| System prompt | who the agent is, what the rules are | you |
+| Tool catalog | what it can call, with what arguments | you |
+| User message | the task | the user |
+| Assistant messages | its reasoning and its tool requests | the model |
+| Tool messages | what your code returned | your code |
 
-Agent 在第 7 步"知道"的一切，就是这个数组里的内容。**没有别的了。**
+Everything the agent knows on round 7 is what's in that array. **There is
+nothing else.**
 
-## 三、这个实验做什么
+### "Round" vs "step"
 
-**消融实验（ablation study）**：同一个任务跑五遍，每遍删掉上下文的一个部分，看它怎么坏。
-这个方法借自机器学习研究 —— 想证明某个组件重要，就把它拿掉，测损失有多大。
+Two views of the same counter, which trips people up:
 
-| 模式 | 删掉了什么 | 预期的坏法 |
+- **Round N** — the program's view: the loop's Nth iteration, happening *now*
+- **Step N** — the model's view: the result of round N, already in history
+
+So round N sends steps 1 through N-1:
+
+```
+Round 1  ->  history is empty
+Round 2  ->  history has step 1
+Round 3  ->  history has steps 1, 2
+Round 4  ->  history has steps 1, 2, 3
+```
+
+In one line: **"round" is what's happening, "step" is what already happened.**
+The progress output prints this for you (`context holds steps 1-3`).
+
+---
+
+## 3. What the experiment does
+
+An **ablation study**: run the same task five times, deleting one part of the
+context each time, and observe how it breaks. The method is borrowed from ML
+research — to prove a component matters, remove it and measure the damage.
+
+| Mode | What's deleted | Expected failure |
 |---|---|---|
-| `full` | 什么都不删（基线） | 正常完成 |
-| `no_history` | 除最近一步外的全部历史 | 重复调用已经调过的工具，一直循环到上限 |
-| `no_reasoning` | 模型自己的思考过程 | 还能做对，但步数变多 —— 每轮都要重新想一遍 |
-| `no_tool_calls` | 压根不给它工具 | 自信地编一个答案出来 |
-| `no_tool_results` | 工具返回值替换成 `[结果已隐藏]` | 调了工具，但拿不到结果，只好瞎编 |
+| `full` | nothing (baseline) | completes normally |
+| `no_history` | everything but the latest step | repeats tools it already called, loops to the cap |
+| `no_reasoning` | the model's own thinking | still works, but takes more rounds — it re-derives its plan every time |
+| `no_tool_calls` | tools aren't offered at all | confidently makes up an answer |
+| `no_tool_results` | results replaced with `[result hidden]` | calls tools, sees nothing, invents numbers |
 
-**把这四种坏法再读一遍** —— 每一个都是你以后做真实 agent 会撞上的 bug：
+**Read those failure modes again.** Every one is a bug you will hit for real:
 
-- `no_history` = 上下文窗口被截断
-- `no_tool_results` = 工具集成写挂了
-- `no_tool_calls` = 权限配错、工具没注册上
-- `no_reasoning` = 你为了省 token 把 thinking 丢了
+- `no_history` = your context window got truncated
+- `no_tool_results` = your tool integration is broken
+- `no_tool_calls` = misconfigured permissions, tool never registered
+- `no_reasoning` = you dropped thinking blocks to save tokens
 
-这个实验其实是一本**agent 故障图鉴**。
+This lab is a **field guide to agent failures**.
 
-## 四、动手
+---
 
-### 0. 环境
+## 4. Doing it
+
+### 0. Setup
 
 ```bash
 pip install -r requirements.txt
-python -c "import llm; print(llm.detect_backend())"
+python3 -c "import llm; print(llm.detect_backend())"
 ```
 
-打印出 `claude` 或 `codex` 就说明零配置可用，不需要 API key。
-想跑快点：`export LAB_BACKEND=api DEEPSEEK_API_KEY=sk-...`
+If that prints `claude` or `codex`, you're set — no API key needed.
+Want it faster: `export LAB_BACKEND=api DEEPSEEK_API_KEY=sk-...`
 
-### 1. 先读代码，再跑
+For English output, set `LANG = "en"` at the top of `agent.py`. That switches
+both the console output and the prompts sent to the model.
 
-`agent.py` 是**按阅读顺序**从上往下写的，分成六个大段，每段都有标题：
+### 1. Read the code first
 
-| 段 | 内容 | 难度 |
+`agent.py` is written **in reading order**, in six labelled parts:
+
+| Part | Content | Difficulty |
 |---|---|---|
-| 第 1 部分 | 工具 —— 就是三个普通 Python 函数 | 简单 |
-| 第 2 部分 | 系统提示词 —— 告诉模型有啥工具、怎么回话 | 简单 |
-| 第 3 部分 | **拼上下文** ★ 五种消融全在这 | 核心 |
-| 第 4 部分 | 执行工具 —— 一串 if / elif | 简单 |
-| 第 5 部分 | 主循环 —— agent 的心脏 | 核心 |
-| 第 6 部分 | 命令行入口 —— 跟原理无关，可跳过 | 跳过 |
+| 1 | Tools — three plain Python functions | easy |
+| 2 | System prompt — what tools exist, what format to reply in | easy |
+| 3 | **Assembling the context** ★ all five ablations live here | core |
+| 4 | Running the tools — an if/elif chain | easy |
+| 5 | The loop — the heart of the agent | core |
+| 6 | CLI entry point — irrelevant to how agents work | skip |
 
-旁边的 `llm.py` 是「怎么调大模型」的适配层，**第一次读完全可以跳过**。你只需要知道它
-提供了一个 `complete(提示词, 系统提示词)` 函数，返回模型的回复文本。
+`llm.py` next door is the backend adapter. **Skip it entirely on a first read** —
+all you need to know is that it gives you `complete(prompt, system)`.
 
-> 代码里刻意避开了 Python 的简写语法（三元表达式、列表推导、`**kwargs` 解包等），
-> 全用最笨但最好读的写法。会写 `for` 和 `if` 就能读懂。
+Read with these three questions in mind:
 
-读的时候带着这三个问题：
+1. Which function is the loop? Which line decides when to stop?
+2. Which line does each ablation change?
+3. Where does a tool the model named actually get executed?
 
-1. 循环在哪个函数里？哪一行决定什么时候停？
-2. 四种消融分别改了哪一行？
-3. 模型请求的工具，是在哪一行被真正执行的？
+### 2. See the context with your own eyes
 
-### 1.5 强烈建议：亲眼看一次「上下文」长什么样
-
-`agent.py` 开头有一行：
+At the top of `agent.py`:
 
 ```python
-SHOW_PROMPT = False
+SHOW_PROMPT = True
 ```
 
-**改成 `True`，再跑一次 `python agent.py full`。**
-
-它会把每一轮真正发给模型的完整文本原样打印出来，像这样：
+Leave it on and run `python3 agent.py full`. It prints the exact text sent to
+the model each round:
 
 ```
-┌─── 实际发给模型的内容 ─────────────────────────
-任务：我想买 3 个 mechanical keyboard，帮我查一下单价，算出总价，并折算成人民币。
-
-现在给出你的下一条 JSON 回复。
-└────────────────────────────────────────────
+  +--- exact text sent to the model ------------
+  | TASK: I want to buy 3 mechanical keyboards...
+  |
+  | Now give your next JSON reply.
+  +---------------------------------------------
 ```
 
-看完这一眼，你会发现所谓「上下文」根本没有任何玄学 —— **它就是一段拼出来的字符串**。
+After that one look, the mystique is gone: **"context" is a string you built.**
 
-保持 `SHOW_PROMPT = True`，再跑一次 `python agent.py no_history`，
-把两次打印出来的文本对照着看：少了哪几段？这比读十遍文档都管用。
+Keep it on and run `python3 agent.py no_history`, then compare the two dumps.
+Which sections are missing? That beats reading the docs ten times.
 
-### 2. 跑基线
+### 3. Run the baseline
 
 ```bash
-python agent.py full
+python3 agent.py full
 ```
 
-盯着 `[工具]` 那几行看，数一下它调了几次工具、走了几轮。
+Watch the `[tool]` lines. Count the rounds and the tool calls.
 
-### 3. 关键一步：**先预测，再运行**
+### 4. The important bit: predict, *then* run
 
-依次跑另外四种模式，**但每跑一种之前，先在纸上/心里写下你的预测**：轮数会变多还是变少？
-工具调用次数呢？答案还对吗？
+Run the other four modes one at a time — but **write down your prediction
+first**. More rounds or fewer? How many tool calls? Is the answer still right?
 
 ```bash
-python3 agent.py no_history        # 一次跑一个，每次约 30 秒 ~ 1 分钟
+python3 agent.py no_history
 python3 agent.py no_reasoning
 python3 agent.py no_tool_calls
 python3 agent.py no_tool_results
 ```
 
-**四个都单独跑完、都猜过一轮之后**，最后再跑批量对比：
+Once you've done all four and predicted each, run the comparison:
 
 ```bash
 python3 agent.py all
 ```
 
-> ⚠️ **`all` 不是第六种模式**，它是「把上面 5 个模式挨个跑一遍」的意思。
->
-> 所以屏幕上会连着出现 5 段输出，**每段的轮数都从「第 1 轮」重新开始** ——
-> 看起来很像绕回去了，但那不是死循环，只是第 2 个实验开始了。现在每一行都会
-> 标上是哪个模式，比如 `--- [no_history] 第 3/8 轮 ---`。
->
-> 一共最多 40 次模型调用，走 Claude Code / Codex 大约要 **3~8 分钟**。
-> 嫌慢就用 API 后端，快很多：`LAB_BACKEND=api DEEPSEEK_API_KEY=xxx python3 agent.py all`
->
-> **跑 `all` 之前记得把 `SHOW_PROMPT` 改回 `False`**，不然会刷屏到看不见最后的对比表。
+> ⚠️ **`all` is not a sixth mode** — it runs the five above back to back. So
+> you'll see five blocks of output, each restarting from "Round 1". That looks
+> like an infinite loop but isn't. Up to 40 model calls, roughly **3–8 minutes**
+> on the CLI backends. **Turn `SHOW_PROMPT` back to `False` first**, or the
+> comparison table will scroll away.
 
-忘了有哪些模式？直接不带参数运行，它会把用法打印出来：
+**Being wrong is where the learning is.** If you predicted right you already
+knew it. Don't read `SOLUTION.md` yet.
 
-```bash
-python3 agent.py
-```
+### 5. Trace it back to the code
 
-**猜错才是学到东西的地方。** 猜对了说明你本来就懂，猜错了才有增量。
-所以先别看 `SOLUTION.md`。
+For every result that didn't match your prediction, go find **the line that
+caused it**.
 
-### 4. 回到代码定位
-
-对每一个和你预测不符的结果，回 `agent.py` 里找到**造成这个差异的那一行**。
-
-提示：四种消融全都在 `render_context()` 和 `build_system_prompt()` 这两个函数里，
-每种只改了一处。这本身就是本实验的核心结论 ——
-**上下文工程本质上就是对消息数组做增删改。**
-
-## 五、练习：故意把它弄坏
-
-改 `agent.py`，然后预测 + 验证：
-
-1. **删掉 PROTOCOL 里"绝对不要猜数字"那句话** —— 它还会老老实实查吗？
-2. **把 `search_products` 的描述改成 `"一个工具"`** —— 它还能选对工具吗？
-   （这题在说：**工具描述就是 prompt 的一部分**）
-3. **让 `get_rate` 故意返回错的汇率**（比如 999）—— 它会发现不对劲，还是照单全收？
-4. **把 `max_iterations` 改成 2** —— 一个被腰斩的 agent 会输出什么？
-5. **加第四个工具**（比如 `apply_discount(price, percent)`）—— 你需要改**三个地方**，
-   找出来是哪三个。
-
-第 2 题和第 3 题最值得做。它们在说同一件事：**system prompt 和工具描述就是你的程序**，
-你正在学的其实是"用中文/英文写代码并 debug"。
-
-## 六、你可能还想知道
-
-- **`temperature`** —— 随机性。Agent 要调低（0~0.3），这样工具参数才稳定。
-- **`max_iterations`** —— 安全阀。没有它，`no_history` 模式会一直烧你的额度。
-  **每个上线的 agent 都必须有。**
-- **为什么工具调用是 JSON 文本而不是结构化的 `tool_use`** —— 因为走的是 Claude Code /
-  Codex 的 CLI，那个通道被它们的 harness 占着。用 `LAB_BACKEND=api` 可以看到真正的
-  structured tool calling。
+Hint: all five ablations are in `pick_visible_steps()`, `render_context()` and
+`build_system_prompt()` — one or two lines each. That's the point of the lab:
+**context engineering is editing a string.**
 
 ---
 
-试过之后再看 [SOLUTION.md](SOLUTION.md)。
+## 5. Exercises: break it on purpose
+
+Edit `agent.py`, predict, verify:
+
+1. **Delete the "never guess" line** (`sys_no_guessing`) — does it still look
+   things up?
+2. **Change a tool description to just `"a tool"`** — does it still pick the
+   right one? (Point: **tool descriptions are part of your prompt.**)
+3. **Make `get_rate` return a wrong rate** (say 999) — does it notice, or
+   swallow it?
+4. **Set `max_iterations` to 2** — what does a truncated agent produce?
+5. **Add a fourth tool** (e.g. `apply_discount(price, percent)`) — you need to
+   change **three** places. Find them.
+
+2 and 3 are the ones worth doing. They make the same point: **the system prompt
+and the tool descriptions are your program.** What you're really learning is how
+to write and debug code in English.
+
+---
+
+## 6. Odds and ends
+
+- **`temperature`** — randomness. Agents want it low (0–0.3) so tool arguments
+  stay deterministic.
+- **`max_iterations`** — the safety valve. Without it, `no_history` mode bills
+  you forever. **Every production agent needs one.**
+- **Why tool calls are JSON text, not structured `tool_use`** — because we go
+  through the Claude Code / Codex CLI, whose harness owns that channel. Use
+  `LAB_BACKEND=api` to see real structured tool calling.
+
+---
+
+Read [SOLUTION.md](SOLUTION.md) after you've tried it.

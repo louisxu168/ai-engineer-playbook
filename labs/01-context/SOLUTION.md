@@ -1,149 +1,174 @@
-# 实验 01 参考答案
+# Lab 01 — Answers
 
-> 自己跑过、预测错过之后再读这里。
+**English** · [简体中文](SOLUTION.zh-CN.md)
 
-下面的数字是在 `LAB_BACKEND=claude`（Claude Code 无头模式）下实测的。
-**你跑出来的数字大概率和这里不完全一样** —— 原因见最后一节，那本身就是一课。
+> Read this after you've run it and predicted wrong at least once.
+
+The numbers below were measured with `LAB_BACKEND=claude` (Claude Code headless).
+**Yours will probably differ** — see the last section, which is itself a lesson.
 
 ---
 
-## 实测结果
+## Measured results
 
-| 模式 | 轮数 | 工具调用 | 答案 |
+| Mode | Rounds | Tool calls | Answer |
 |---|---|---|---|
-| `full` | 3 | 4 | ✅ 597 美元 / 4322.28 元 |
-| `no_history` | 5 | 4 | ✅ 4322.28 元 —— **没坏！** 见下 |
-| `no_tool_calls` | 3 | 2（都失败） | ❌ 编出「单价约 100 美元、汇率 7.1、约 2130 元」 |
-| `no_tool_results` | 4 | 5 | ❌ 反复重调同样的工具，最后放弃 |
+| `full` | 3 | 4 | ✅ 597 USD / 4322.28 CNY |
+| `no_history` | 5 | 4 | ✅ 4322.28 CNY — **it didn't break!** see below |
+| `no_tool_calls` | 3 | 2 (both failed) | ❌ invented "about $100 each, rate ~7.1, ~2130 CNY" |
+| `no_tool_results` | 4 | 5 | ❌ re-called the same tools repeatedly, then gave up |
 
-正确答案：Keychron Q1 Pro 单价 199 美元 × 3 = 597 美元，× 7.24 = **4322.28 元**。
+Correct answer: Keychron Q1 Pro at 199 USD × 3 = 597 USD, × 7.24 = **4322.28 CNY**.
 
-> **注意「轮数」和「工具调用」现在会脱钩。**
-> 支持并行工具调用之后，一轮可以调好几个工具。所以 `full` 只用 3 轮就调完了 4 次工具：
-> 第 1 轮并行调 `search_products` + `get_rate`（两者互不依赖），第 2 轮并行调两次 `calc`。
+> **Note that "rounds" and "tool calls" have decoupled.** With parallel tool
+> calls, one round can invoke several tools. So `full` finishes 4 tool calls in
+> only 3 rounds: round 1 calls `search_products` + `get_rate` together (they're
+> independent), round 2 runs two `calc`s together.
 >
-> 加并行之前这个任务要跑满 5 轮。**省下的不是工具调用次数，是往返模型的次数** ——
-> 每次往返要等模型 6~13 秒，本地函数只要几微秒，所以这才是真正的耗时大头。
+> Before parallel calls were added, this task took 5 rounds. **What you save is
+> round trips, not tool calls** — each round trip waits 6–13 seconds on the
+> model, a local function takes microseconds.
 >
-> `no_history` 那一行没变（5 轮）也很合理：它每轮只看得到最近一步，
-> 很难判断"哪几个工具彼此不依赖"，自然就不太敢并行。
+> It also makes sense that `no_history` did *not* improve (still 5 rounds): it
+> only ever sees the most recent step, so it can't tell which tools are mutually
+> independent, and doesn't dare parallelise.
 
 ---
 
-## 逐个说
+## Mode by mode
 
-### `full` —— 基线
+### `full` — the baseline
 
-5 轮 4 次工具调用：`search_products` → `calc(199*3)` → `get_rate` → `calc(597*7.24)` → 给答案。
-每一步都建立在上一步的返回值上，这就是 ReAct 该有的样子。
+3 rounds, 4 tool calls. Every step builds on the previous return value. That's
+ReAct working as intended.
 
-### `no_tool_results` —— 最干净的失败
+### `no_tool_results` — the cleanest failure
 
-教科书式的翻车。工具照调，但返回值全被换成 `[结果已隐藏]`，于是模型开始用占位符做算术：
-
-```
-[工具] calc({'expression': '<mechanical keyboard 的真实单价> * 3'}) -> {'error': 'invalid syntax'}
-[工具] calc({'expression': '<第5步得到的美元总价> * <第3步得到的USD兑CNY汇率>'}) -> {'error': 'invalid syntax'}
-```
-
-最后给出的"答案"是这样的：
-
-> 3 个 mechanical keyboard 的单价、美元总价及人民币折算结果已由第4步（单价）、第5步（单价×3
-> 得美元总价）、第6步（美元总价×USD→CNY 汇率）依次算出，最终人民币金额即第6步的计算结果。
-
-**一个数字都没有**，但语气笃定得像真算出来了。这就是"工具集成写挂了"在生产环境里的样子 ——
-不报错，只是安静地胡说。
-
-### `no_tool_calls` —— 这里有个坑，我第一次跑翻车了
-
-**第一次跑的结果不是幻觉，是拒答。** 它老老实实说"我无法查到真实单价，也不应该编造这些数字"。
-
-为什么？因为 system prompt 里那句 **"绝对不要猜一个本可以用工具查到的数字"** 在
-`no_tool_calls` 模式下**还留着**。模型遵守了它。于是我看到的是"守规矩"的后果，
-而不是"没工具"的后果 —— **这个消融实验设计里混进了一个混淆变量。**
-
-修掉之后（把那句话也一起移除，见 `agent.py` 里的 `NO_GUESSING`），才看到预期的幻觉：
-
-> 主流机械键盘单价约 100 美元/个……3 个 × 100 美元 = 300 美元；按约 7.1 的汇率折算，
-> 总价约 2130 元人民币
-
-真值是 199 美元 / 7.24 / 4322.28 元。**每个数字都是编的，而且编得很像那么回事。**
-
-**这一条本身就是最值得学的东西**：做消融实验，你以为只删了一个变量，实际上常常删了一个半。
-设计消融时要问自己：我删掉的这部分，system prompt 里还有没有别的地方在替它说话？
-
-### `no_history` —— 它居然没坏，为什么？
-
-预期是"重复调用已经调过的工具"。实测**一次都没重复**，5 轮就做对了。
-
-看轮数和 prompt 长度：
+Textbook. Tools still get called, but every return value is replaced with
+`[result hidden]`, so the model starts doing arithmetic on placeholders:
 
 ```
-第 3 轮 | prompt 207 字符   ← 只能看到第 2 步
-[工具] get_rate(USD, CNY)
-第 4 轮 | prompt 264 字符   ← 只能看到第 3 步（get_rate 的结果）
-[工具] calc({'expression': '597 * 7.24'})   ← 597 是哪来的？？
+[tool] calc({'expression': '<the real unit price of the keyboard> * 3'})
+       -> {'error': 'invalid syntax'}
 ```
 
-第 4 轮的上下文里**根本没有 597 这个数**（那是第 2 步的结果，已经被截断了）。它是怎么知道的？
+And the "answer" it eventually produces reads like this:
 
-答案：**模型把状态偷偷塞进了自己的 `reasoning` 字段**。每一步的 assistant 回复都会被完整
-渲染回去，包括 reasoning。模型学会了在 reasoning 里写"总价 597 美元，现在需要汇率"，
-于是那个数字就跟着最近一步一起活下来了。
+> The unit price, USD total and CNY conversion for 3 mechanical keyboards have
+> been computed in steps 4, 5 and 6 respectively; the final CNY figure is the
+> result of step 6.
 
-**它自己发明了一个记忆通道。** 这不是 bug，这是真实 agent 里会看到的行为
-（scratchpad persistence）。
+**Not one actual number**, delivered with total confidence. That is exactly what
+a broken tool integration looks like in production: no error, just quiet nonsense.
 
-那怎么才能真的让它坏？**同时砍掉历史和 reasoning** —— 把走私通道也堵上。这是留给你的题：
+### `no_tool_calls` — there's a trap here, and I fell in it
 
-> 加一个 `no_history_no_reasoning` 模式（`render_context` 里两个条件同时生效），
-> 预测一下，再跑。
+**On the first run this produced a refusal, not a hallucination.** It said, quite
+correctly, "I can't look up the real unit price and I shouldn't invent it."
+
+Why? Because the sentence **"Never guess a number you could look up with a tool"**
+was *still in the system prompt* in `no_tool_calls` mode. The model obeyed it. So
+what I was observing was **rule-following, not tool-lessness** — the ablation had
+a confounding variable in it.
+
+After fixing it (removing that line too — see `sys_no_guessing` in `agent.py`),
+the expected hallucination appeared:
+
+> Mainstream mechanical keyboards run about $100 each... 3 × $100 = $300; at a
+> rate of roughly 7.1, that's about 2130 CNY
+
+Truth: 199 / 7.24 / 4322.28. **Every number invented, and all of them plausible.**
+
+**This is the single most valuable thing in this lab.** When you design an
+ablation, you think you removed one variable — you often removed one and a half.
+Always ask: does anything *else* in the system prompt still speak for the thing I
+just deleted?
+
+### `no_history` — it didn't break. Why?
+
+Expected: "repeats tools it already called". Observed: **zero repeats**, correct
+answer in 5 rounds.
+
+Look at the round numbers and prompt sizes:
+
+```
+Round 3 | prompt 207 chars   <- can only see step 2
+[tool] get_rate(USD, CNY)
+Round 4 | prompt 264 chars   <- can only see step 3 (the get_rate result)
+[tool] calc({'expression': '597 * 7.24'})   <- where did 597 come from??
+```
+
+Round 4's context contains **no 597 anywhere** — that was step 2's result, long
+truncated. So how did it know?
+
+Answer: **the model smuggled state into its own `reasoning` field.** Every step's
+assistant reply is rendered back in full, reasoning included. It learned to write
+"total is 597 USD, now I need the rate" into the reasoning, so that number
+survived alongside the most recent step.
+
+**It invented itself a memory channel.** Not a bug — this is real agent behaviour
+(scratchpad persistence).
+
+So how do you actually break it? **Cut history AND reasoning at the same time**,
+closing the smuggling channel. That one's for you:
+
+> Add a `no_history_no_reasoning` mode (both conditions active in
+> `render_context`), predict the result, then run it.
 
 ---
 
-## 练习答案
+## Exercise answers
 
-**1. 删掉"绝对不要猜数字"** —— 它会开始直接从记忆里报价，不再查 `search_products`。
-这和 `no_tool_calls` 修坑那一节是同一件事：**这句话的分量比你想的重。**
+**1. Delete the "never guess" line** — it starts quoting prices from memory
+instead of calling `search_products`. Same phenomenon as the `no_tool_calls`
+trap above: **that sentence carries more weight than you'd think.**
 
-**2. 把工具描述改成"一个工具"** —— 选错工具的概率明显上升，尤其在 `search_products` 和
-`get_rate` 之间摇摆。因为**模型选工具的唯一依据就是描述文本**，schema 里的参数名帮不了太多忙。
-教训：工具描述不是注释，是 prompt。
+**2. Change a tool description to `"a tool"`** — wrong-tool rate goes up
+noticeably, especially between `search_products` and `get_rate`. Because **the
+description text is the model's only basis for choosing**; argument names in the
+schema don't help much. Lesson: tool descriptions are not comments, they're prompt.
 
-**3. 让 `get_rate` 返回 999** —— 绝大多数情况下它**照单全收**，算出一个离谱的天价然后自信地报出来。
-少数情况下会嘀咕一句"这个汇率看起来不太对"。教训：**模型默认信任工具返回值**，
-数据校验得你自己在工具里做。
+**3. Make `get_rate` return 999** — in the vast majority of runs it **swallows
+it**, computes an absurd figure and reports it confidently. Occasionally it
+mutters that the rate looks off. Lesson: **the model trusts tool output by
+default.** Validation is your job, inside the tool.
 
-**4. `max_iterations = 2`** —— 触发 `[上限]` 分支，返回 `answer: None`。这就是为什么每个上线的
-agent 都必须有这个安全阀：没有它，`no_history` 那种循环会一直烧额度。
+**4. `max_iterations = 2`** — hits the cap branch and returns `answer: None`.
+This is why every production agent needs the safety valve: without it, a
+`no_history`-style loop bills you forever.
 
-**5. 加第四个工具需要改三个地方**：
-1. 写函数本身（`def apply_discount(price, percent)`）
-2. 在 `execute_tool()` 里加一个 `elif` 分支，把工具名接到函数上
-3. 加进 `TOOL_CATALOG` 文本 —— **漏掉这条，模型永远不知道它存在**
+**5. Adding a fourth tool needs three changes:**
+1. Write the function itself (`def apply_discount(price, percent)`)
+2. Add an `elif` branch in `execute_tool()` mapping the name to the function
+3. Add it to the `sys_tools` text — **miss this and the model never knows it exists**
 
-第 3 步是新手最常漏的。函数写好了、注册了、就是不被调用，因为模型压根没看见。
-
----
-
-## 为什么你的数字和我的不一样
-
-三个来源，都值得知道：
-
-1. **模型是随机的。** 同一个模式跑两次，轮数可能差 1~2。上面 `no_history` 的结果在另一次
-   运行里就**真的重复调用了**（第 1、2 步和第 3、4 步是完全相同的两次转换）。
-   **消融实验要跑多次取趋势，不能只跑一次下结论。**
-2. **后端不同结论不同。** `LAB_BACKEND=claude` / `codex` / `api` 背后是不同的模型，
-   遵守指令的严格程度不一样。
-3. **走 CLI 有个副作用**：你会看到它去调 `WebSearch`、`ToolSearch` 这种**根本不在我们工具表里**
-   的东西 —— 那是 Claude Code 自己的工具名从 harness 里漏出来了。用 `LAB_BACKEND=api`
-   就不会有这个现象。
+Number 3 is the one beginners forget. Function written, wired up, never called —
+because the model literally cannot see it.
 
 ---
 
-## 一句话总结
+## Why your numbers differ from mine
 
-四种消融，全都只改了 `render_context()` 和 `build_system_prompt()` 里的**一两行文本**。
-没有改模型，没有改循环，没有改工具实现。
+Three sources, all worth knowing:
 
-**上下文工程本质上就是对消息数组做增删改。** 这就是本实验唯一要你记住的事。
+1. **The model is stochastic.** The same mode run twice can differ by 1–2 rounds.
+   That `no_history` result above **did repeat its tool calls** on a different run
+   (steps 1–2 and 3–4 were identical conversions). **Ablation studies need
+   multiple runs and trend-reading, not one run and a conclusion.**
+2. **Different backends, different conclusions.** `LAB_BACKEND=claude` / `codex` /
+   `api` are different models with different levels of instruction-following.
+3. **Going through a CLI has a side effect**: you'll sometimes see it try to call
+   `WebSearch` or `ToolSearch` — tools **not in our catalog at all**. That's
+   Claude Code's own tool namespace leaking through the harness. Doesn't happen
+   with `LAB_BACKEND=api`.
+
+---
+
+## In one line
+
+All five ablations are **one or two lines of text** inside `pick_visible_steps()`,
+`render_context()` and `build_system_prompt()`. No change to the model, the loop,
+or any tool implementation.
+
+**Context engineering is editing a string.** That's the only thing this lab wants
+you to remember.

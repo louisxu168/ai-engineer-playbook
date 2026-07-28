@@ -80,7 +80,16 @@ TEXT = {
         "ctx_tool_returned": "工具 {tool} 返回：",
         "ctx_hidden": "[结果已隐藏]",
         "ctx_next": "现在给出你的下一条 JSON 回复。",
-        "task_default": "我想买 3 个 mechanical keyboard，帮我查一下单价，算出总价，并折算成人民币。",
+        "ask_task": "请输入你要让 agent 完成的任务（直接回车看例子）：\n> ",
+        "examples_title": "几个可以直接复制的例子（工具只认这三个商品）：",
+        "task_examples": [
+            "我想买 3 个 mechanical keyboard，帮我查一下单价，算出总价，并折算成人民币。",
+            "买 2 个 monitor 和 1 个 wireless mouse，一共多少美元？",
+            "1 个 monitor 折算成日元是多少？",
+        ],
+        "need_task": "没有任务就没法跑。把任务写在模式后面，或者不带任务运行进入交互输入。",
+        "no_tty": "检测到非交互环境（比如管道/脚本里跑），请把任务直接写在命令行：\n    python3 agent.py {mode} \"你的任务\"",
+        "rerun_hint": "想用同一个任务跑别的模式做对比，复制这行改模式名即可：",
         # --- console output ---
         "no_history_yet": "上下文里还没有历史",
         "only_step": "上下文只含第 {n} 步",
@@ -189,8 +198,16 @@ Note that `calls` is an array — you may put several tool calls in it at once:
         "ctx_tool_returned": "Tool {tool} returned: ",
         "ctx_hidden": "[result hidden]",
         "ctx_next": "Now give your next JSON reply.",
-        "task_default": "I want to buy 3 mechanical keyboards. Look up the unit "
-                        "price, compute the total, and convert it to CNY.",
+        "ask_task": "Type the task you want the agent to do (Enter for examples):\n> ",
+        "examples_title": "Some you can copy (the tools only know these three products):",
+        "task_examples": [
+            "I want to buy 3 mechanical keyboards. Look up the unit price, compute the total, and convert it to CNY.",
+            "Buy 2 monitors and 1 wireless mouse - how much in USD?",
+            "What is 1 monitor in JPY?",
+        ],
+        "need_task": "No task, nothing to run. Put the task after the mode, or run without one to be prompted.",
+        "no_tty": "Non-interactive environment detected (piped or scripted). Put the task on the command line:\n    python3 agent.py {mode} \"your task\"",
+        "rerun_hint": "To compare another mode on the SAME task, copy this and change the mode name:",
         # --- console output ---
         "no_history_yet": "no history in context yet",
         "only_step": "context holds step {n} only",
@@ -706,6 +723,58 @@ def run(task, mode="full", max_iterations=8, backend=None, verbose=True):
 # read.
 
 
+def ask_for_task(mode):
+    """Get the task from the user. There is deliberately NO default.
+
+    Picking a task for them hides the most important knob in the lab: the
+    ablations only mean something when you compare modes on the SAME task, and
+    that only sinks in if you chose the task yourself.
+    """
+    # Piped/scripted runs have no keyboard to prompt — fail with instructions
+    # rather than hanging on input().
+    if not sys.stdin.isatty():
+        print("")
+        print(t("no_tty", mode=mode))
+        sys.exit(1)
+
+    answer = input(t("ask_task")).strip()
+    if answer:
+        return answer
+
+    # Empty input: show examples and ask once more.
+    print("")
+    print(t("examples_title"))
+    examples = t("task_examples")
+    for i in range(len(examples)):
+        print("  " + str(i + 1) + ". " + examples[i])
+    print("")
+    answer = input(t("ask_task")).strip()
+
+    if not answer:
+        print("")
+        print(t("need_task"))
+        sys.exit(1)
+    return answer
+
+
+def print_rerun_hint(task, mode_arg):
+    """After a run, print the exact command to try the SAME task in another mode.
+
+    Comparing ablations is only valid on an identical task, and retyping a long
+    question by hand is where that quietly goes wrong.
+    """
+    others = []
+    for m in MODES:
+        if m != mode_arg:
+            others.append(m)
+    if len(others) == 0:
+        return
+    print("")
+    print(t("rerun_hint"))
+    print('    python3 agent.py ' + others[0] + ' "' + task + '"')
+    print("")
+
+
 def print_help():
     print(t("help"))
 
@@ -745,7 +814,8 @@ if __name__ == "__main__":
     if len(sys.argv) > 2:
         task = " ".join(sys.argv[2:])   # rejoin if the quotes were forgotten
     else:
-        task = t("task_default")
+        # No task on the command line -> ask. No silent default: see ask_for_task().
+        task = ask_for_task(mode_arg)
 
     if mode_arg not in MODES and mode_arg != "all":
         print("")
@@ -786,3 +856,4 @@ if __name__ == "__main__":
 
     else:
         run(task, mode=mode_arg, backend=backend)
+        print_rerun_hint(task, mode_arg)

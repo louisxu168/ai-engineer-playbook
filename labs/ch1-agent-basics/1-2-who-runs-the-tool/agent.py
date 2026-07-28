@@ -86,7 +86,16 @@ calls 是数组，互不依赖的工具可以一次全放进去。""",
         "ctx_your_reply": "你的回复：",
         "ctx_tool_returned": "工具 {tool} 返回：",
         "ctx_next": "现在给出你的下一条 JSON 回复。",
-        "task_default": "迪拜最高的建筑和上海最高的建筑，哪个更高？高多少米？",
+        "ask_task": "请输入你想让 agent 查的问题（直接回车看例子）：\n> ",
+        "examples_title": "几个可以直接复制的例子（英文维基百科查得到的都行）：",
+        "task_examples": [
+            "迪拜最高的建筑和上海最高的建筑，哪个更高？高多少米？",
+            "珠穆朗玛峰和乔戈里峰差多少米？",
+            "长江和黄河哪条更长？长多少公里？",
+        ],
+        "need_task": "没有问题就没法查。把问题写在模式后面，或者不带问题运行进入交互输入。",
+        "no_tty": "检测到非交互环境（比如管道/脚本里跑），请把问题直接写在命令行：\n    python3 agent.py {mode} \"你的问题\"",
+        "rerun_hint": "想用同一个问题跑别的模式做对比，复制这行改模式名即可：",
         # console
         "no_backend_title": "✗ 没找到可用的后端（agent 需要一个大模型才能跑）",
         "no_backend_help": """
@@ -206,8 +215,16 @@ or, when you have the complete answer:
         "ctx_your_reply": "You replied: ",
         "ctx_tool_returned": "Tool {tool} returned: ",
         "ctx_next": "Now give your next JSON reply.",
-        "task_default": "Which is taller, the tallest building in Dubai or the "
-                        "tallest in Shanghai? By how many metres?",
+        "ask_task": "Type the question you want the agent to research (Enter for examples):\n> ",
+        "examples_title": "Some you can copy (anything English Wikipedia covers works):",
+        "task_examples": [
+            "Which is taller, the tallest building in Dubai or the tallest in Shanghai? By how many metres?",
+            "How much taller is Everest than K2?",
+            "Which river is longer, the Nile or the Amazon, and by how much?",
+        ],
+        "need_task": "No question, nothing to research. Put it after the mode, or run without one to be prompted.",
+        "no_tty": "Non-interactive environment detected (piped or scripted). Put the question on the command line:\n    python3 agent.py {mode} \"your question\"",
+        "rerun_hint": "To compare another mode on the SAME question, copy this and change the mode name:",
         # console
         "no_backend_title": "x No usable backend found (the agent needs an LLM to run)",
         "no_backend_help": """
@@ -673,6 +690,58 @@ def run(task, mode="diy", backend=None, verbose=True):
 # ==========================================================================
 
 
+def ask_for_task(mode):
+    """Get the task from the user. There is deliberately NO default.
+
+    Picking a task for them hides the most important knob in the lab: the
+    ablations only mean something when you compare modes on the SAME task, and
+    that only sinks in if you chose the task yourself.
+    """
+    # Piped/scripted runs have no keyboard to prompt — fail with instructions
+    # rather than hanging on input().
+    if not sys.stdin.isatty():
+        print("")
+        print(t("no_tty", mode=mode))
+        sys.exit(1)
+
+    answer = input(t("ask_task")).strip()
+    if answer:
+        return answer
+
+    # Empty input: show examples and ask once more.
+    print("")
+    print(t("examples_title"))
+    examples = t("task_examples")
+    for i in range(len(examples)):
+        print("  " + str(i + 1) + ". " + examples[i])
+    print("")
+    answer = input(t("ask_task")).strip()
+
+    if not answer:
+        print("")
+        print(t("need_task"))
+        sys.exit(1)
+    return answer
+
+
+def print_rerun_hint(task, mode_arg):
+    """After a run, print the exact command to try the SAME task in another mode.
+
+    Comparing ablations is only valid on an identical task, and retyping a long
+    question by hand is where that quietly goes wrong.
+    """
+    others = []
+    for m in MODES:
+        if m != mode_arg:
+            others.append(m)
+    if len(others) == 0:
+        return
+    print("")
+    print(t("rerun_hint"))
+    print('    python3 agent.py ' + others[0] + ' "' + task + '"')
+    print("")
+
+
 def print_help():
     print(t("help"))
 
@@ -716,9 +785,10 @@ if __name__ == "__main__":
         sys.exit(0)
 
     if len(sys.argv) > 2:
-        task = " ".join(sys.argv[2:])
+        task = " ".join(sys.argv[2:])   # rejoin if the quotes were forgotten
     else:
-        task = t("task_default")
+        # No task on the command line -> ask. No silent default: see ask_for_task().
+        task = ask_for_task(mode_arg)
 
     if mode_arg not in MODES and mode_arg != "all":
         print("")
@@ -754,3 +824,4 @@ if __name__ == "__main__":
 
     else:
         run(task, mode=mode_arg, backend=backend)
+        print_rerun_hint(task, mode_arg)

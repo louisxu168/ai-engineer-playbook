@@ -33,16 +33,65 @@ get it running", it's "why is it being weird again".
 ```bash
 git clone https://github.com/louisxu168/ai-engineer-playbook.git
 cd ai-engineer-playbook/labs/ch1-agent-basics/1-1-context
-pip install -r requirements.txt
-python3 agent.py          # prints usage
-python3 agent.py full     # run the baseline
+python3 agent.py full
 ```
 
-No `.env`, no signup, no billing.
+**Three lines and you have a result.** No `pip install`, no `.env`, no signup,
+no billing.
 
-> **Output is in Chinese by default.** Set `LANG = "en"` at the top of
-> `agent.py` to switch the console output *and* the prompts sent to the model
-> to English.
+### What you should see
+
+```
+Backend: claude
+Task: I want to buy 3 mechanical keyboards. Look up the unit price, ...
+
+========================================================
+  Round 1 of 8     mode: full
+  no history in context yet     prompt 141 chars
+========================================================
+
+  asking the model... took 7.2s
+
+  [thinking] Look up the price and the USD->CNY rate in parallel; independent.
+
+  [tool 1/2] search_products({'keyword': 'mechanical keyboard'})
+        -> {'name': 'Keychron Q1 Pro', 'usd': 199.0}
+  [tool 2/2] get_rate({'from_currency': 'USD', 'to_currency': 'CNY'})
+        -> {'rate': 7.24, 'from': 'USD', 'to': 'CNY'}
+  ^ 2 tools called in parallel (model judged them independent)
+
+  ... a few more rounds ...
+
+  [answer] Keychron Q1 Pro at 199.00 USD, 3 of them is 597.00 USD;
+           at 1 USD = 7.24 CNY that's about 4322.28 CNY.
+```
+
+**If you got an `[answer]` line, it worked.** The whole thing takes 30–60
+seconds (it's slow because each model call waits 5–15s — that's not a hang).
+
+> Output is Chinese by default. Set `LANG = "en"` at the top of `agent.py` to
+> switch both the console output and the prompts sent to the model.
+
+### What to run next
+
+```bash
+python3 agent.py                # no arguments = print usage; run this when you forget
+python3 agent.py no_history     # delete the history, watch it break
+python3 agent.py no_tool_calls  # take away its tools, watch it make things up
+python3 agent.py all            # all five modes + comparison table (3-8 minutes)
+```
+
+**Predict the result before each run** — being wrong is where the learning is.
+
+### It didn't work?
+
+| What you see | What it means | What to do |
+|---|---|---|
+| `x No usable backend found` | No Claude Code / Codex, no API key | Install any one of the three options it prints |
+| `command not found: python3` | No Python | Usually preinstalled on macOS/Linux; on Windows tick "Add to PATH" |
+| Nothing happens for tens of seconds | **Normal** | Each model call takes 5–15s; the screen shows "asking the model..." |
+| Output scrolls forever | You ran `all` | That's 5 experiments back to back, not an infinite loop. Wait, or Ctrl+C |
+| `ModuleNotFoundError: openai` | You picked the API backend | That's the only case needing `pip install -r requirements.txt` |
 
 ---
 

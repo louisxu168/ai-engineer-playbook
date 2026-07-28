@@ -30,12 +30,61 @@
 ```bash
 git clone https://github.com/louisxu168/ai-engineer-playbook.git
 cd ai-engineer-playbook/labs/ch1-agent-basics/1-1-context
-pip install -r requirements.txt
-python3 agent.py          # 先看用法说明
-python3 agent.py full     # 跑基线
+python3 agent.py full
 ```
 
-没有 `.env`，没有注册，没有充值。
+**三行，跑完就有结果。** 不需要 `pip install`，不需要 `.env`，不需要注册，不需要充值。
+
+### 你应该看到什么
+
+```
+后端：claude
+问题：我想买 3 个 mechanical keyboard，帮我查一下单价，算出总价，并折算成人民币。
+
+════════════════════════════════════════════════════════
+  第 1 轮 / 共 8 轮     模式：full
+  上下文里还没有历史     提示词 72 字符
+════════════════════════════════════════════════════════
+
+  正在问模型… 用了 7.2 秒
+
+  [思考] 先查商品单价和美元兑人民币汇率，这两件事互不依赖。
+
+  [工具 1/2] search_products({'keyword': 'mechanical keyboard'})
+        -> {'name': 'Keychron Q1 Pro', 'usd': 199.0}
+  [工具 2/2] get_rate({'from_currency': 'USD', 'to_currency': 'CNY'})
+        -> {'rate': 7.24, 'from': 'USD', 'to': 'CNY'}
+  ↑ 这一轮并行调了 2 个工具（模型判断它们互不依赖）
+
+  ... 中间还有几轮 ...
+
+  [答案] Keychron Q1 Pro 单价 199.00 美元，3 个总价 597.00 美元；
+         按 1 美元 = 7.24 人民币折算，约合 4322.28 元人民币。
+```
+
+**看到 `[答案]` 那一行就说明成功了。** 整个过程大约 30 秒 ~ 1 分钟
+（慢是因为每次问模型要等 5~15 秒，不是卡住了）。
+
+### 接下来跑什么
+
+```bash
+python3 agent.py                # 不带参数 = 打印用法说明，忘了命令就敲这个
+python3 agent.py no_history     # 删掉历史记录，看它怎么坏
+python3 agent.py no_tool_calls  # 不给它工具，看它怎么编
+python3 agent.py all            # 五种模式全跑一遍 + 对比表（约 3~8 分钟）
+```
+
+**每跑一个之前先猜结果** —— 猜错才是学到东西的地方。
+
+### 跑不起来？
+
+| 你看到的 | 什么意思 | 怎么办 |
+|---|---|---|
+| `✗ 没找到可用的后端` | 没装 Claude Code / Codex，也没设 API key | 按屏幕上的三个选项装任意一个 |
+| `command not found: python3` | 没装 Python | macOS/Linux 一般自带；Windows 装完记得勾 "Add to PATH" |
+| 卡住不动好几十秒 | **正常** | 每次问模型要等 5~15 秒，屏幕上会显示「正在问模型…」 |
+| 输出一直刷屏停不下来 | 你跑的是 `all` | 那是 5 个实验连着跑，不是死循环。等着或 Ctrl+C |
+| `ModuleNotFoundError: openai` | 你用了 API 后端 | 只有这种情况才需要 `pip install -r requirements.txt` |
 
 ---
 

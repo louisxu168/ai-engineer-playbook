@@ -2,6 +2,39 @@
 
 **English** · [简体中文](README.zh-CN.md)
 
+> ## 🚀 Run it first (nothing to install)
+>
+> ```bash
+> cd labs/ch1-agent-basics/1-1-context
+> python3 agent.py full
+> ```
+>
+> **That's it — two lines.** No `pip install`, no API key, no config file. If you
+> have Claude Code or Codex installed, it finds them automatically.
+>
+> **Takes about 30 seconds.** You should see something like:
+>
+> ```
+> Backend: claude
+> Task: I want to buy 3 mechanical keyboards...
+>
+> ============================================
+>   Round 1 of 8     mode: full
+> ============================================
+>   asking the model... took 7.2s
+>   [thinking] Look up the price and the rate in parallel; they're independent.
+>   [tool 1/2] search_products({'keyword': 'mechanical keyboard'})
+>         -> {'name': 'Keychron Q1 Pro', 'usd': 199.0}
+>   ...
+>   [answer] ...about 4322.28 CNY.
+> ```
+>
+> If you got an `[answer]` line, it worked. **Read on for the other four modes.**
+>
+> Forgot the commands? Run `python3 agent.py` with no arguments for usage.
+>
+> *(Output is Chinese by default — set `LANG = "en"` at the top of `agent.py`.)*
+
 **The question:** what exactly *is* an agent's "context", and how does it break
 when you delete a piece of it?
 

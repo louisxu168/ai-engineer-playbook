@@ -2,6 +2,35 @@
 
 **English** · [简体中文](README.zh-CN.md)
 
+> ## 🚀 Run it first (nothing to install)
+>
+> ```bash
+> cd labs/ch1-agent-basics/1-2-who-runs-the-tool
+> python3 agent.py hosted        # step 1: the provider does everything
+> python3 agent.py diy           # step 2: now you do it, and compare
+> ```
+>
+> **No `pip install`, no API key.** `hosted` uses Claude Code's built-in web
+> search; `diy` uses the public Wikipedia API (standard library only).
+>
+> **Order matters: hosted first, then diy.** Reversed, the contrast falls flat.
+>
+> After `hosted` (about a minute) you get a polished answer with source links,
+> followed by this:
+>
+> ```
+>   Notice what you CANNOT see: which queries did it run? which pages did it
+>   open? what did it read? did anything fail and get retried? -- none of it.
+>   Just this final block of text.
+> ```
+>
+> **That is the whole argument of this lab.** Now run `diy` and watch the
+> opposite happen.
+>
+> Forgot the commands? Run `python3 agent.py` with no arguments.
+>
+> *(Output is Chinese by default — set `LANG = "en"` at the top of `agent.py`.)*
+
 **The question:** when an agent uses a tool, who actually *runs* it — you, or
 the provider?
 

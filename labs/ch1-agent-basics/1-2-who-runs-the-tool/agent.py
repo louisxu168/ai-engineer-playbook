@@ -88,6 +88,20 @@ calls 是数组，互不依赖的工具可以一次全放进去。""",
         "ctx_next": "现在给出你的下一条 JSON 回复。",
         "task_default": "迪拜最高的建筑和上海最高的建筑，哪个更高？高多少米？",
         # console
+        "no_backend_title": "✗ 没找到可用的后端（agent 需要一个大模型才能跑）",
+        "no_backend_help": """
+下面三个任选其一即可，装好后回到这个目录重新运行：
+
+  1. Claude Code（推荐，装了就能用，不用配置也不用花钱）
+     安装： https://claude.com/claude-code
+     检查： claude --version
+
+  2. Codex CLI
+     检查： codex --version
+
+  3. 任意一个 API key（最快最省，但要花钱）
+     export DEEPSEEK_API_KEY=sk-你的key
+""",
         "backend": "后端：",
         "task_label": "问题：",
         "no_history_yet": "上下文里还没有历史",
@@ -195,6 +209,20 @@ or, when you have the complete answer:
         "task_default": "Which is taller, the tallest building in Dubai or the "
                         "tallest in Shanghai? By how many metres?",
         # console
+        "no_backend_title": "x No usable backend found (the agent needs an LLM to run)",
+        "no_backend_help": """
+Any ONE of these will do. Install it, come back to this folder, run again:
+
+  1. Claude Code (recommended - works out of the box, no config, no extra cost)
+     Install: https://claude.com/claude-code
+     Check:   claude --version
+
+  2. Codex CLI
+     Check:   codex --version
+
+  3. Any API key (fastest and cheapest, but costs money)
+     export DEEPSEEK_API_KEY=sk-your-key
+""",
         "backend": "Backend: ",
         "task_label": "Question: ",
         "no_history_yet": "no history in context yet",
@@ -698,7 +726,16 @@ if __name__ == "__main__":
         print_help()
         sys.exit(1)
 
-    backend = detect_backend()
+    # Friendly failure instead of a raw traceback: "no backend" is by far the
+    # most likely first-run problem, and a stack trace helps nobody.
+    try:
+        backend = detect_backend()
+    except RuntimeError:
+        print("")
+        print(t("no_backend_title"))
+        print(t("no_backend_help"))
+        sys.exit(1)
+
     print(t("backend") + backend)
     print(t("task_label") + task)
 

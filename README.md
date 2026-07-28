@@ -32,7 +32,7 @@ get it running", it's "why is it being weird again".
 
 ```bash
 git clone https://github.com/louisxu168/ai-engineer-playbook.git
-cd ai-engineer-playbook/labs/01-context
+cd ai-engineer-playbook/labs/ch1-agent-basics/1-1-context
 pip install -r requirements.txt
 python3 agent.py          # prints usage
 python3 agent.py full     # run the baseline
@@ -91,7 +91,7 @@ fixes — no point wasting your time on those.
 Claude Code users also get a slash command:
 
 ```
-/lab 01
+/lab 1-1
 ```
 
 It checks your environment, frames the concept, makes you read the code, and
@@ -106,19 +106,24 @@ makes you predict the result before running — in teaching order.
 
 ## The labs
 
-| # | Lab | What you learn | Status |
-|---|---|---|---|
-| 01 | [Context Ablation](labs/01-context/) | Agent = LLM + context + tools; delete any part of the context and watch how it breaks | ✅ Ready |
-| 02 | [Who runs the tool?](labs/02-who-runs-the-tool/) | Provider-hosted tools vs your own harness; what you give up when you don't write the loop | ✅ Ready |
-| 03 | Tool design | Writing schemas, what a bad description costs you, feeding errors back | 📋 Planned |
-| 04 | Memory across sessions | File-based memory: what to write down and what not to | 📋 Planned |
-| 05 | Context compaction | When the conversation outgrows the window: summarise vs. prune | 📋 Planned |
-| 06 | Retrieval | Why naive RAG loses to agentic search | 📋 Planned |
-| 07 | Planning and subagents | When splitting a task helps, and when it just costs you | 📋 Planned |
-| 08 | Evaluating an agent | LLM-as-judge, and when it lies to you | 📋 Planned |
-| 09 | Learning from experience | Letting an agent write down what it got wrong | 📋 Planned |
+Labs are grouped by **chapter**, following the structure of *AI Agents in Depth*
+so you can read the two side by side. Each lab is still a **self-contained
+folder** — download one and it runs.
 
-### What lab 01 looks like
+| Ch | Topic | Labs | Status |
+|---|---|---|---|
+| [1](labs/ch1-agent-basics/) | Agent basics | [1-1 Context ablation](labs/ch1-agent-basics/1-1-context/) · [1-2 Who runs the tool?](labs/ch1-agent-basics/1-2-who-runs-the-tool/) | ✅ 2 ready |
+| 2 | Context engineering | Compaction, prompt injection, system-prompt ablation | 📋 Planned |
+| 3 | User memory & knowledge | File-based memory, agentic RAG vs naive RAG | 📋 Planned |
+| 4 | Tools | Tool design (schemas / descriptions / error feedback), async tools | 📋 Planned |
+| 5 | Coding agents | Code-as-reasoning, a minimal coding agent | 📋 Planned |
+| 6 | Evaluation | LLM-as-judge, and when it lies to you | 📋 Planned |
+| 7 | Post-training | Distillation, RL, post-training | 📋 Planned |
+| 8 | Continuous evolution | Learning from experience, self-improving prompts | 📋 Planned |
+| 9 | Multimodal & real-time | Speech, streaming interaction | 📋 Planned |
+| 10 | Multi-agent collaboration | Parallel research, subagent coordination | 📋 Planned |
+
+### What lab 1-1 looks like
 
 Running `python3 agent.py full` (with `LANG = "en"`):
 
@@ -153,17 +158,19 @@ ai-engineer-playbook/
 ├── README.md / README.zh-CN.md   this file, in both languages
 ├── AGENTS.md                     TA-mode instructions (Claude Code + Codex)
 ├── CLAUDE.md                     -> imports AGENTS.md
-├── .claude/commands/lab.md       the /lab slash command
+├── .claude/commands/lab.md       the /lab 1-1 slash command
 └── labs/
-    ├── 01-context/               one self-contained folder per lab
-    └── 02-who-runs-the-tool/
-        ├── README.md             the lab walkthrough (English)
-        ├── README.zh-CN.md       同上（中文）
-        ├── agent.py              the agent itself
-        ├── llm.py                backend adapter (claude / codex / api)
-        ├── AGENTS.md             TA notes specific to this lab
-        ├── SOLUTION.md           answers — read after you've tried
-        └── requirements.txt
+    └── ch1-agent-basics/         grouped by chapter, numbered like the book
+        ├── README.md             chapter intro (both languages)
+        ├── 1-1-context/          one self-contained folder per lab
+        │   ├── README.md         the lab walkthrough (English)
+        │   ├── README.zh-CN.md   同上（中文）
+        │   ├── agent.py          the agent itself
+        │   ├── llm.py            backend adapter (claude / codex / api)
+        │   ├── AGENTS.md         TA notes specific to this lab
+        │   ├── SOLUTION.md       answers — read after you've tried
+        │   └── requirements.txt
+        └── 1-2-who-runs-the-tool/
 ```
 
 **Every lab folder stands alone**, `llm.py` included. The duplication is

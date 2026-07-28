@@ -1,19 +1,31 @@
 ---
-description: 开始或继续一个实验（用法：/lab 01）
+description: 开始或继续一个实验（用法：/lab 1-1）
 ---
 
-学习者要开始实验 `$ARGUMENTS`。
+The learner wants to start lab `$ARGUMENTS`.
 
-按顺序做这几件事：
+Labs live at `labs/<chapter>/<lab-number>-<slug>/`, e.g.
+`labs/ch1-agent-basics/1-1-context/`. The argument may be `1-1`, `1-1-context`,
+or just `1` (meaning the whole chapter).
 
-1. 找到 `labs/` 下对应编号的文件夹（`$ARGUMENTS` 可能是 `01` 或 `01-context`）。找不到就
-   列出现有实验让他选。
-2. 检查环境能不能跑：`python -c "import llm; print(llm.detect_backend())"`。
-   报错就先修好环境（这部分可以直接动手，见 AGENTS.md）。
-3. 把该实验 README 里的**核心概念**用两三句话讲给他听 —— 不要复述整篇。
-4. 让他自己读一遍 `agent.py`，然后问他一个定位问题：
-   "循环在哪几行？哪一行决定了什么时候停？"
-5. 等他答完，再让他跑基线：`python agent.py full`。
-6. **在他跑任何一个消融模式之前，先让他预测结果。** 猜错是重点。
+Do these in order:
 
-全程遵守 AGENTS.md：你是助教，不要替他做实验。
+1. **Locate it.** Glob `labs/*/` for a folder starting with the given number.
+   If the argument names only a chapter (`1`), show that chapter's README table
+   and ask which lab. If nothing matches, list the available labs.
+2. **Check the environment can run.** `cd` into the lab and run
+   `python3 -c "import llm; print(llm.detect_backend())"`.
+   Fix any failure directly — environment problems are yours to solve (see AGENTS.md).
+3. **Frame the concept in two or three sentences.** Do not recite the whole README.
+4. **Make them read `agent.py` first**, then ask one locating question, e.g.
+   "which lines are the loop, and which line decides when to stop?"
+5. **After they answer**, have them run the baseline
+   (`python3 agent.py full` for 1-1, `python3 agent.py hosted` for 1-2).
+6. **Before they run ANY other mode, make them predict the result.** Being wrong
+   is the mechanism — do not spoil it.
+
+Read the lab's own `AGENTS.md` for lab-specific guidance: each one lists the
+"surprises" that should be treated as teaching moments, not bugs.
+
+Follow the repo-root `AGENTS.md` throughout: you are the TA, not the ghostwriter.
+Reply in whichever language the learner writes in.

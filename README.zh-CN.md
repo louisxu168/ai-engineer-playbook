@@ -29,7 +29,7 @@
 
 ```bash
 git clone https://github.com/louisxu168/ai-engineer-playbook.git
-cd ai-engineer-playbook/labs/01-context
+cd ai-engineer-playbook/labs/ch1-agent-basics/1-1-context
 pip install -r requirements.txt
 python3 agent.py          # 先看用法说明
 python3 agent.py full     # 跑基线
@@ -79,7 +79,7 @@ LAB_BACKEND=api DEEPSEEK_API_KEY=sk-... python3 agent.py full   # 最快最省
 Claude Code 用户还有个 slash command：
 
 ```
-/lab 01
+/lab 1-1
 ```
 
 它会检查环境、讲清概念、让你先读代码、再让你预测结果——按教学顺序走一遍。
@@ -92,19 +92,23 @@ Claude Code 用户还有个 slash command：
 
 ## 实验列表
 
-| # | 实验 | 学到什么 | 状态 |
-|---|---|---|---|
-| 01 | [上下文消融](labs/01-context/) | Agent = LLM + 上下文 + 工具；删掉上下文的任一部分，它会怎么坏 | ✅ 可用 |
-| 02 | [工具由谁来跑](labs/02-who-runs-the-tool/) | 厂商托管工具 vs 自己搭 harness；不写循环时你放弃了什么 | ✅ 可用 |
-| 03 | 工具设计 | schema 怎么写、描述写烂了会怎样、报错怎么回传给模型 | 📋 计划中 |
-| 04 | 跨会话记忆 | 文件式 memory：什么该记、什么不该记 | 📋 计划中 |
-| 05 | 上下文压缩 | 对话撑爆窗口时，压缩和裁剪的区别 | 📋 计划中 |
-| 06 | 检索增强 | 为什么朴素 RAG 打不过 agentic search | 📋 计划中 |
-| 07 | 规划与子代理 | 什么时候该拆任务，什么时候拆了反而更慢 | 📋 计划中 |
-| 08 | 怎么评测 agent | LLM-as-judge，以及它什么时候不靠谱 | 📋 计划中 |
-| 09 | 从经验中学习 | 让 agent 把踩过的坑写下来，下次少踩 | 📋 计划中 |
+实验按**章**组织，章节划分参考《深入理解 AI Agent》，方便对照阅读。
+每个实验仍是**独立文件夹**，只下载一个也能跑。
 
-### 实验 01 长什么样
+| 章 | 主题 | 本章实验 | 状态 |
+|---|---|---|---|
+| [第 1 章](labs/ch1-agent-basics/README.zh-CN.md) | Agent 基础 | [1-1 上下文消融](labs/ch1-agent-basics/1-1-context/README.zh-CN.md) · [1-2 工具由谁来跑](labs/ch1-agent-basics/1-2-who-runs-the-tool/README.zh-CN.md) | ✅ 2 个可用 |
+| 第 2 章 | 上下文工程 | 上下文压缩、prompt 注入、system prompt 消融 | 📋 计划中 |
+| 第 3 章 | 用户记忆与知识库 | 文件式记忆、agentic RAG vs 朴素 RAG | 📋 计划中 |
+| 第 4 章 | 工具 | 工具设计（schema / 描述 / 错误回传）、异步工具 | 📋 计划中 |
+| 第 5 章 | Coding Agent 与代码生成 | 用代码算逻辑、最小 coding agent | 📋 计划中 |
+| 第 6 章 | Agent 的评估 | LLM-as-judge，以及它什么时候不靠谱 | 📋 计划中 |
+| 第 7 章 | 模型后训练 | 蒸馏、强化学习、后训练 | 📋 计划中 |
+| 第 8 章 | Agent 的持续进化 | 从经验中学习、自我改进 prompt | 📋 计划中 |
+| 第 9 章 | 多模态与实时交互 | 语音、流式交互 | 📋 计划中 |
+| 第 10 章 | 多 Agent 协作 | 并行研究、子代理协作 | 📋 计划中 |
+
+### 实验 1-1 长什么样
 
 跑 `python3 agent.py full`，你会看到：
 
@@ -137,17 +141,19 @@ ai-engineer-playbook/
 ├── README.md / README.zh-CN.md   中英两版
 ├── AGENTS.md                     助教模式指令（Claude Code / Codex 都读）
 ├── CLAUDE.md                     → 引用 AGENTS.md
-├── .claude/commands/lab.md       /lab 01 这个 slash command
+├── .claude/commands/lab.md       /lab 1-1 这个 slash command
 └── labs/
-    ├── 01-context/               每个实验一个独立文件夹
-    └── 02-who-runs-the-tool/
-        ├── README.zh-CN.md       实验说明：概念 + 步骤 + 练习
-        ├── README.md             同上（英文）
-        ├── agent.py              主体
-        ├── llm.py                后端适配（claude / codex / api）
-        ├── AGENTS.md             这个实验专属的助教指令
-        ├── SOLUTION.zh-CN.md     参考答案 —— 自己试过之后再看
-        └── requirements.txt
+    └── ch1-agent-basics/         按章分组，章号与原书对应
+        ├── README.md             本章导读（中英两版）
+        ├── 1-1-context/          每个实验一个独立文件夹
+        │   ├── README.zh-CN.md   实验说明：概念 + 步骤 + 练习
+        │   ├── README.md         同上（英文）
+        │   ├── agent.py          主体
+        │   ├── llm.py            后端适配（claude / codex / api）
+        │   ├── AGENTS.md         这个实验专属的助教指令
+        │   ├── SOLUTION.zh-CN.md 参考答案 —— 自己试过之后再看
+        │   └── requirements.txt
+        └── 1-2-who-runs-the-tool/
 ```
 
 > **代码注释是英文的。** 这是开源惯例，为了让英文用户 clone 下来能直接读。

@@ -1,9 +1,9 @@
 """
-Backend adapter — lets the labs run WITHOUT an API key.
+后端适配层 —— 让实验在「没有 API key」的情况下也能跑。
 
 +----------------------------------------------------------------------+
-|  You can skip this whole file on a first read. It does not matter for |
-|  understanding how agents work.                                       |
+|  第一次学的话，这个文件可以完全跳过，不影响你理解 agent 的原理。      |
+|                                                                       |
 |                                                                       |
 |  It exposes exactly four things:                                      |
 |      complete(prompt, system)  -> the model's reply, as text          |
@@ -20,17 +20,16 @@ Backend adapter — lets the labs run WITHOUT an API key.
 |  were an LLM API.                                                     |
 +----------------------------------------------------------------------+
 
-Most learners have no paid API key, but many already have Claude Code or
-Codex installed. Both can be called non-interactively and both authenticate
-with the subscription you are already logged into.
+大部分学习者没有付费 API key，但很可能已经装了 Claude Code 或 Codex。
+这两个 CLI 都能非交互调用，用的是你已有的订阅登录态。
 
-Detection order (override with the LAB_BACKEND environment variable):
-    1. claude   -> Claude Code CLI    (subscription login, zero config)
-    2. codex    -> Codex CLI          (subscription login, zero config)
-    3. api      -> OpenAI-compatible API (needs a key; fastest and cheapest)
+探测顺序（可用环境变量 LAB_BACKEND 强制指定）：
+    1. claude   -> Claude Code CLI      （订阅登录，零配置）
+    2. codex    -> Codex CLI            （订阅登录，零配置）
+    3. api      -> OpenAI 兼容 API      （需要 key，最快最省）
 
-Every lab ships its own copy of this file. The duplication is deliberate:
-it is what makes "download one folder and run it" true.
+每个实验都自带一份这个文件的副本。**重复是故意的** ——
+这才让「只下载一个文件夹就能跑」成立。
 """
 
 import json
@@ -41,10 +40,9 @@ import subprocess
 
 TIMEOUT = 300
 
-# Shared by both CLI backends. Claude Code and Codex come with their own
-# built-in tools (Bash, Read, ...). We want them as plain text completion only,
-# so we have to forbid those explicitly — otherwise the model reaches for Bash,
-# blows past --max-turns and the call fails. Learned the hard way.
+# 两个 CLI 后端共用。Claude Code 和 Codex 自带一堆内置工具（Bash、Read…）。
+# 我们只想把它们当「纯文本补全」用，所以必须显式禁止 ——
+# 否则模型会去调 Bash，然后撞上 --max-turns 直接失败。这是实测踩过的坑。
 _NO_BUILTIN_TOOLS = (
     "\n\nIMPORTANT: do not invoke any built-in tool (Bash, Read, Write, Task, "
     "TodoWrite, ...). There is no filesystem and no shell here. Your entire "
@@ -53,7 +51,7 @@ _NO_BUILTIN_TOOLS = (
 
 
 def detect_backend():
-    """Return the name of the backend to use."""
+    """返回当前该用哪个后端。"""
     forced = os.getenv("LAB_BACKEND")
     if forced:
         return forced
@@ -79,11 +77,10 @@ def _api_key():
 # --- the three backends ----------------------------------------------------
 
 def _complete_claude(prompt, system, attempts=3):
-    """Claude Code headless mode.
+    """Claude Code 无头模式。
 
-    We never pass --continue/--resume, so every call is STATELESS. That means
-    the context is entirely ours to assemble — which is exactly what the
-    ablation experiment needs.
+    我们从不传 --continue/--resume，所以**每次调用都是无状态的**。
+    这意味着上下文完全由我们自己拼 —— 而这正是消融实验需要的控制权。
     """
     last = ""
     for _ in range(attempts):
@@ -102,15 +99,14 @@ def _complete_claude(prompt, system, attempts=3):
             continue
         if payload.get("result"):
             return payload["result"]
-        # Occasionally it reaches for a built-in tool anyway. Non-deterministic,
-        # so just retry.
+        # 偶发：它还是去调了内置工具。这是不确定性问题，重试即可。
         last = f"no result (rc={proc.returncode}, stop={payload.get('stop_reason')})"
     raise RuntimeError(f"claude failed {attempts} times in a row: {last}")
 
 
 def _complete_codex(prompt, system):
-    """Codex headless mode. `codex exec` has no --system-prompt, so the system
-    text is prepended to the prompt instead."""
+    """Codex 无头模式。codex exec 没有 --system-prompt，
+    所以把 system 文本拼在提示词前面。"""
     proc = subprocess.run(
         ["codex", "exec", "--skip-git-repo-check", "--json",
          system + _NO_BUILTIN_TOOLS + "\n\n---\n\n" + prompt],
@@ -124,7 +120,7 @@ def _complete_codex(prompt, system):
             continue
         item = event.get("item", {})
         if item.get("type") == "agent_message":
-            text = item.get("text")          # keep the last agent_message
+            text = item.get("text")          # 取最后一条 agent_message
     if text is None:
         raise RuntimeError(
             f"codex returned no message (rc={proc.returncode}): {proc.stderr[:200]}")
@@ -132,7 +128,7 @@ def _complete_codex(prompt, system):
 
 
 def _complete_api(prompt, system):
-    """Standard OpenAI-compatible endpoint. Fastest and cheapest, needs a key."""
+    """标准 OpenAI 兼容接口。最快最省，但要 key。"""
     from openai import OpenAI
 
     key_name = _api_key()
@@ -155,7 +151,7 @@ _BACKENDS = {"claude": _complete_claude, "codex": _complete_codex, "api": _compl
 
 
 def complete(prompt, system, backend=None):
-    """One stateless completion. Returns the model's raw reply text."""
+    """一次无状态补全。返回模型回复的原始文本。"""
     backend = backend or detect_backend()
     if backend not in _BACKENDS:
         raise ValueError(f"unknown backend {backend!r}; expected one of {sorted(_BACKENDS)}")
@@ -213,12 +209,11 @@ def complete_hosted(prompt, max_turns=8):
 
 
 def parse_json_reply(text):
-    """Pull the JSON object out of the model's reply text. Returns {} if absent.
+    """把模型回复文本里的 JSON 对象抠出来。抠不到就返回 {}。
 
-    This is the compromise the CLI backends force on us: `claude -p` and
-    `codex exec` do not expose structured tool_use blocks, so tool calls have
-    to be a JSON text protocol we parse ourselves. Use LAB_BACKEND=api to see
-    real structured tool calling.
+    这是走 CLI 后端不得不做的妥协：claude -p 和 codex exec 拿不到结构化的
+    tool_use block，所以工具调用只能约定成一段 JSON 文本自己解析。
+    想看真正的 structured tool calling，用 LAB_BACKEND=api。
     """
     match = re.search(r"\{.*\}", text or "", re.S)
     if not match:

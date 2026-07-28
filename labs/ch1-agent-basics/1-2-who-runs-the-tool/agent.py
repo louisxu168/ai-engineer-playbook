@@ -1,29 +1,29 @@
 """
-Lab 02 — Who runs the tool?
+实验 1-2：工具由谁来跑？
 
-Lab 01 asked "what is context". This one asks a different question:
+实验 1-1 问的是「上下文是什么」，这一个问的是另一件事：
 
-    When an agent uses a tool, WHO actually runs it — you, or the provider?
+    当 agent 用工具时，**真正执行工具的是你，还是厂商？**
 
-Modern models ship with tools built in. Ask Claude Code a question and it will
-search the web, read pages, and answer, all by itself. You wrote no loop. That
-is "the model IS the agent" — the provider owns the harness.
+现在的模型很多自带工具。你直接问 Claude Code 一个问题，它会自己联网搜索、
+自己读网页、自己给答案 —— 你一行循环都没写。
+这就是所谓「模型即 Agent」：harness 在厂商那边。
 
-The alternative: you define the tools, you run the loop, the model only ever
-names what it wants. That is what lab 01 built.
+另一条路：工具你自己定义，循环你自己跑，模型只负责**说出**它想调什么。
+那正是实验 1-1 搭的东西。
 
-Both are legitimate. They trade off differently, and this lab makes you feel
-the trade-off by answering the SAME question five ways.
+两条路都成立，只是代价不同。这个实验让你亲手体会那个代价 ——
+同一个问题，五种跑法。
 
-    python3 agent.py                 # print usage
-    python3 agent.py hosted          # the provider does everything
-    python3 agent.py diy             # you do everything
-    python3 agent.py all             # all five, then a comparison
+    python3 agent.py                 # 打印用法说明
+    python3 agent.py hosted          # 厂商把整件事搞定
+    python3 agent.py diy             # 你自己搞定
+    python3 agent.py all             # 五种全跑 + 对比表
 
-No API key needed. `hosted` mode uses Claude Code's built-in WebSearch; the
-`diy` modes use Wikipedia's public API (no key, standard library only).
+不需要 API key。hosted 用 Claude Code 自带的 WebSearch，
+diy 系列用维基百科公开 API（无需 key，只用 Python 标准库）。
 
-Full walkthrough: README.md (English) / README.zh-CN.md (中文).
+详细讲解见 README.zh-CN.md（中文）/ README.md（英文）。
 """
 
 import json
@@ -37,28 +37,28 @@ from llm import (complete, complete_hosted, detect_backend, parse_json_reply,
 
 
 # --------------------------------------------------------------------------
-#  Settings you may want to flip
+#  可以改的开关（Settings）
 # --------------------------------------------------------------------------
 
 LANG = "zh"          # "zh" | "en" — language of the output AND the prompts
 
-SHOW_PROMPT = False  # True = print the exact text sent to the model each round
+SHOW_PROMPT = False  # 改成 True 会打印每轮真正发给模型的完整文本
 
 
 MODES = [
-    "hosted",            # provider runs search AND the loop. You see almost nothing.
-    "diy",               # you run both. You see everything.
-    "no_search",         # you run the loop, but give it no search tool at all.
-    "diy_titles_only",   # your search returns titles but no snippets.
-    "diy_top1",          # your search returns 1 hit instead of 3.
+    "hosted",            # 厂商跑搜索、也跑循环。你几乎什么都看不到。
+    "diy",               # 两样都你自己跑。每一步都看得见。
+    "no_search",         # 你跑循环，但完全不给它搜索工具。
+    "diy_titles_only",   # 你的 search 只返回标题，不返回摘要。
+    "diy_top1",          # 你的 search 只返回 1 条结果，而不是 3 条。
 ]
 
-# The three diy_* modes share one loop; only the search tool differs.
+# 三个 diy_* 模式共用同一个循环，区别只在 search 工具本身。
 DIY_MODES = ["diy", "no_search", "diy_titles_only", "diy_top1"]
 
 
 # --------------------------------------------------------------------------
-#  All user-visible strings, per language (prompts included).
+#  所有对用户可见的文字，按语言分开放（包含发给模型的提示词）。
 # --------------------------------------------------------------------------
 
 TEXT = {
@@ -96,7 +96,7 @@ calls 是数组，互不依赖的工具可以一次全放进去。""",
         "need_task": "没有问题就没法查。把问题写在模式后面，或者不带问题运行进入交互输入。",
         "no_tty": "检测到非交互环境（比如管道/脚本里跑），请把问题直接写在命令行：\n    python3 agent.py {mode} \"你的问题\"",
         "rerun_hint": "想用同一个问题跑别的模式做对比，复制这行改模式名即可：",
-        # console
+        # --- 屏幕输出 ---
         "no_backend_title": "✗ 没找到可用的后端（agent 需要一个大模型才能跑）",
         "no_backend_help": """
 下面三个任选其一即可，装好后回到这个目录重新运行：
@@ -130,7 +130,7 @@ calls 是数组，互不依赖的工具可以一次全放进去。""",
         "search_disabled": "本模式没有搜索工具",
         "no_hits": "没搜到结果",
         "read_failed": "读不到这个词条：",
-        # hosted mode
+        # --- hosted 模式专用 ---
         "hosted_title": "  ── hosted 模式：整件事都交给厂商 ──",
         "hosted_note": """  我们只做了一件事：把问题原样发出去，并允许它使用自带的 WebSearch。
   没有循环、没有工具定义、没有上下文拼接 —— 那些都在厂商那边跑。""",
@@ -139,7 +139,7 @@ calls 是数组，互不依赖的工具可以一次全放进去。""",
         "hosted_blind": """  注意你看不到的东西：它搜了什么关键词？看了哪些网页？
   中间读到过什么？失败重试过吗？—— 全都没有。只有最后这段文字。""",
         "hosted_unavailable": "  ⚠️  {msg}",
-        # summary
+        # --- 对比表 + 用法说明 ---
         "summary_title": "对比结果",
         "summary_mode": "模式：",
         "summary_visible": "  你能看到的步骤：",
@@ -225,7 +225,7 @@ or, when you have the complete answer:
         "need_task": "No question, nothing to research. Put it after the mode, or run without one to be prompted.",
         "no_tty": "Non-interactive environment detected (piped or scripted). Put the question on the command line:\n    python3 agent.py {mode} \"your question\"",
         "rerun_hint": "To compare another mode on the SAME question, copy this and change the mode name:",
-        # console
+        # --- 屏幕输出 ---
         "no_backend_title": "x No usable backend found (the agent needs an LLM to run)",
         "no_backend_help": """
 Any ONE of these will do. Install it, come back to this folder, run again:
@@ -259,7 +259,7 @@ Any ONE of these will do. Install it, come back to this folder, run again:
         "search_disabled": "this mode has no search tool",
         "no_hits": "no results",
         "read_failed": "cannot read that article: ",
-        # hosted mode
+        # --- hosted 模式专用 ---
         "hosted_title": "  -- hosted mode: the whole job goes to the provider --",
         "hosted_note": """  All we did: send the question as-is, and allow its built-in WebSearch.
   No loop, no tool definitions, no context assembly -- all of that runs on
@@ -270,7 +270,7 @@ Any ONE of these will do. Install it, come back to this folder, run again:
   open? what did it read? did anything fail and get retried? -- none of it.
   Just this final block of text.""",
         "hosted_unavailable": "  !  {msg}",
-        # summary
+        # --- 对比表 + 用法说明 ---
         "summary_title": "COMPARISON",
         "summary_mode": "mode: ",
         "summary_visible": "  steps you can see: ",
@@ -326,7 +326,7 @@ Full walkthrough: README.md
 
 
 def t(key, **kwargs):
-    """Look up a string for the current language, filling in any {placeholders}."""
+    """按当前语言取一段文字，并把 {占位符} 填上。"""
     template = TEXT[LANG][key]
     if kwargs:
         return template.format(**kwargs)
@@ -334,22 +334,22 @@ def t(key, **kwargs):
 
 
 # ==========================================================================
-#  Part 1: Tools — the ones WE implement
+#  第 1 部分：工具 —— 我们自己实现的那些（Part 1: Tools）
 # ==========================================================================
-# Wikipedia's API needs no key and no third-party package: urllib is in the
-# standard library. That keeps this lab runnable anywhere.
+# 维基百科的 API 不需要 key，也不需要第三方包：urllib 是标准库自带的。
+# 这样这个实验在哪都能跑。
 #
-# Note the shape of the toolset. `search` does NOT return answers, it returns
-# pointers — titles and snippets. To get a real figure you have to `read` the
-# article. That two-step shape is what real agentic search looks like, and it
-# is the thing naive "just stuff the search results in the prompt" gets wrong.
+# 注意这套工具的形状：**search 不返回答案，只返回线索**（标题 + 摘要）。
+# 想拿到真实数字，必须再用 read 去读正文。
+# 这个「两步式」正是真实 agentic search 的样子，
+# 也正是朴素 RAG（把检索结果一股脑塞进 prompt）做错的地方。
 
 WIKI_API = "https://en.wikipedia.org/w/api.php"
 USER_AGENT = "ai-engineer-playbook/0.1 (educational lab)"
 
 
 def _wiki_get(params):
-    """One GET against the Wikipedia API. Returns parsed JSON."""
+    """向维基百科 API 发一次 GET，返回解析好的 JSON。"""
     url = WIKI_API + "?" + urllib.parse.urlencode(params)
     request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
     with urllib.request.urlopen(request, timeout=30) as response:
@@ -357,9 +357,9 @@ def _wiki_get(params):
 
 
 def search(query, limit=3, with_snippets=True):
-    """Tool 1: search Wikipedia. Returns leads, not answers.
+    """工具 1：搜维基百科。返回的是线索，不是答案。
 
-    limit and with_snippets are what the ablation modes turn down.
+    limit 和 with_snippets 就是消融模式要调低的两个旋钮。
     """
     try:
         data = _wiki_get({
@@ -376,21 +376,21 @@ def search(query, limit=3, with_snippets=True):
     results = []
     for hit in hits:
         if with_snippets:
-            # The API marks matches with HTML; strip the tags for readability.
+            # API 会用 HTML 标签标出命中词，去掉标签方便阅读。
             snippet = hit.get("snippet", "")
             snippet = snippet.replace('<span class="searchmatch">', "")
             snippet = snippet.replace("</span>", "")
             snippet = snippet.replace("&quot;", '"').replace("&amp;", "&")
             results.append({"title": hit["title"], "snippet": snippet})
         else:
-            # ABLATION diy_titles_only: leads without any content.
+            # ★ 消融点 diy_titles_only：只给线索，不给任何内容。
             results.append({"title": hit["title"]})
 
     return {"results": results}
 
 
 def read(title, chars=700):
-    """Tool 2: read an article's intro. This is where actual figures live."""
+    """工具 2：读词条开头段落。真实数字都在这里。"""
     try:
         data = _wiki_get({
             "action": "query", "prop": "extracts", "titles": str(title),
@@ -413,7 +413,7 @@ def read(title, chars=700):
 
 
 def calc(expression):
-    """Tool 3: evaluate arithmetic. Same as lab 01."""
+    """工具 3：算算术表达式。和实验 1-1 一样。"""
     try:
         answer = eval(str(expression), {"__builtins__": {}}, {})
         return {"result": answer}
@@ -422,24 +422,24 @@ def calc(expression):
 
 
 def execute_tool(tool_name, tool_args, mode):
-    """Run the tool the model named. `mode` decides how good search is.
+    """执行模型点名的工具。mode 决定 search 有多好用。
 
-    THREE ABLATIONS LIVE HERE, and all three only change what `search`
-    RETURNS — never how the loop works.
+    ★ 三个消融点都在这里，而且它们**只改 search 返回什么**，
+      从不改循环怎么跑。
     """
 
     if tool_name == "search":
         if mode == "no_search":
-            # ABLATION no_search: the tool is gone. (Belt and braces — the
-            # system prompt never mentioned it either.)
+            # ★ 消融点 no_search：工具没了。
+            # （双保险 —— 系统提示词里也从没提过它。）
             return {"error": t("search_disabled")}
 
         if mode == "diy_titles_only":
-            # ABLATION: leads with no content attached.
+            # ★ 消融点：只有线索，不带内容。
             return search(tool_args.get("query"), limit=3, with_snippets=False)
 
         if mode == "diy_top1":
-            # ABLATION: one lead instead of three.
+            # ★ 消融点：只给一条线索，而不是三条。
             return search(tool_args.get("query"), limit=1)
 
         return search(tool_args.get("query"))
@@ -455,12 +455,12 @@ def execute_tool(tool_name, tool_args, mode):
 
 
 # ==========================================================================
-#  Part 2: System prompt
+#  第 2 部分：系统提示词（Part 2）
 # ==========================================================================
 
 
 def build_system_prompt(mode):
-    """ABLATION no_search: the tool catalog is never shown."""
+    """★ 消融点 no_search：工具清单根本不给模型看。"""
     parts = []
     parts.append(t("sys_role"))
 
@@ -475,7 +475,7 @@ def build_system_prompt(mode):
 
 
 # ==========================================================================
-#  Part 3: Context assembly (same shape as lab 01)
+#  第 3 部分：拼上下文（和实验 1-1 结构一样）
 # ==========================================================================
 
 
@@ -490,10 +490,10 @@ def describe_visible_steps(steps):
 
 
 def render_context(task, steps):
-    """Render the trajectory so far into this round's prompt.
+    """把已经走过的每一步渲染成这一轮的提示词。
 
-    Unlike lab 01 there is no history ablation here — lab 02 ablates the TOOLS,
-    not the context. Full history every round.
+    和实验 1-1 不同，这里没有历史消融 —— 本实验消融的是**工具**，不是上下文。
+    所以每轮都给完整历史。
     """
     lines = []
     lines.append(t("ctx_task") + task)
@@ -513,7 +513,7 @@ def render_context(task, steps):
 
 
 def extract_tool_calls(reply):
-    """Normalise into a list of calls. Same helper as lab 01."""
+    """归一成「要调的工具」列表。和实验 1-1 是同一个辅助函数。"""
     calls = reply.get("calls")
     if isinstance(calls, list) and len(calls) > 0:
         return calls
@@ -523,16 +523,15 @@ def extract_tool_calls(reply):
 
 
 # ==========================================================================
-#  Part 4: The two runners — this contrast IS the lab
+#  第 4 部分：两个 runner —— 这个对比本身就是本实验（Part 4）
 # ==========================================================================
 
 
 def run_hosted(task, verbose=True):
-    """Hand the entire job to the provider.
+    """把整件事交给厂商。
 
-    Look at how short this is. There is no loop, because we are not running
-    one. The provider searches, reads, reasons and synthesises on its side and
-    returns finished prose.
+    看看这个函数有多短。**这里没有循环**，因为循环根本不在我们这边跑。
+    搜索、阅读、推理、汇总全在厂商那侧完成，返回给我们的是成品文字。
     """
     if verbose:
         print("")
@@ -570,11 +569,11 @@ def run_hosted(task, verbose=True):
 
 
 def run_diy(task, mode="diy", max_iterations=8, backend=None, verbose=True):
-    """Run the loop ourselves. Every search and every snippet is visible.
+    """循环我们自己跑。每一次搜索、每一段摘要都看得见。
 
-    This is lab 01's loop with a different toolset — deliberately, so you can
-    see that "an agent that searches the web" needs no new machinery. It is the
-    same loop; only the tools changed.
+    这就是实验 1-1 的那个循环，只是换了一套工具 —— 故意这么写，
+    好让你看到：**「会联网搜索的 agent」不需要任何新机制**。
+    还是那个循环，变的只是工具。
     """
     steps = []
     tool_call_count = 0
@@ -653,7 +652,7 @@ def run_diy(task, mode="diy", max_iterations=8, backend=None, verbose=True):
                     label = t("tool")
                 print("  " + label + " " + str(tool_name)
                       + "(" + str(tool_args) + ")")
-                # Search results get long — show a trimmed version.
+                # 搜索结果很长，打印时截断一下。
                 shown = json.dumps(result, ensure_ascii=False)
                 if len(shown) > 300:
                     shown = shown[:300] + " …"
@@ -679,26 +678,25 @@ def run_diy(task, mode="diy", max_iterations=8, backend=None, verbose=True):
 
 
 def run(task, mode="diy", backend=None, verbose=True):
-    """Dispatch. Note that `hosted` does not go through the loop at all."""
+    """分发。注意 hosted 压根不走那个循环。"""
     if mode == "hosted":
         return run_hosted(task, verbose=verbose)
     return run_diy(task, mode=mode, backend=backend, verbose=verbose)
 
 
 # ==========================================================================
-#  Part 5: Command line entry point
+#  第 5 部分：命令行入口（Part 5）
 # ==========================================================================
 
 
 def ask_for_task(mode):
-    """Get the task from the user. There is deliberately NO default.
+    """让用户输入问题。**故意不设默认值。**
 
-    Picking a task for them hides the most important knob in the lab: the
-    ablations only mean something when you compare modes on the SAME task, and
-    that only sinks in if you chose the task yourself.
+    替他选一个问题，会盖掉本实验最关键的一个旋钮：
+    模式对比只有在问题完全相同时才成立，而这件事只有他自己选过问题才体会得到。
     """
-    # Piped/scripted runs have no keyboard to prompt — fail with instructions
-    # rather than hanging on input().
+    # 管道或脚本里跑时没有键盘可输入 —— 给出明确指引后退出，
+    # 而不是卡死在 input() 上。
     if not sys.stdin.isatty():
         print("")
         print(t("no_tty", mode=mode))
@@ -708,7 +706,7 @@ def ask_for_task(mode):
     if answer:
         return answer
 
-    # Empty input: show examples and ask once more.
+    # 直接回车：列几个例子，再问一次。
     print("")
     print(t("examples_title"))
     examples = t("task_examples")
@@ -725,10 +723,9 @@ def ask_for_task(mode):
 
 
 def print_rerun_hint(task, mode_arg):
-    """After a run, print the exact command to try the SAME task in another mode.
+    """跑完之后，打印用**同一个问题**换个模式跑的完整命令。
 
-    Comparing ablations is only valid on an identical task, and retyping a long
-    question by hand is where that quietly goes wrong.
+    模式对比只有在问题完全相同时才成立，而手抄一长串问题正是悄悄出错的地方。
     """
     others = []
     for m in MODES:
@@ -785,9 +782,9 @@ if __name__ == "__main__":
         sys.exit(0)
 
     if len(sys.argv) > 2:
-        task = " ".join(sys.argv[2:])   # rejoin if the quotes were forgotten
+        task = " ".join(sys.argv[2:])   # 没加引号也兜住：把剩下的都拼回去
     else:
-        # No task on the command line -> ask. No silent default: see ask_for_task().
+        # 命令行没给问题 → 问他要。没有静默默认值，见 ask_for_task()。
         task = ask_for_task(mode_arg)
 
     if mode_arg not in MODES and mode_arg != "all":
@@ -796,8 +793,8 @@ if __name__ == "__main__":
         print_help()
         sys.exit(1)
 
-    # Friendly failure instead of a raw traceback: "no backend" is by far the
-    # most likely first-run problem, and a stack trace helps nobody.
+    # 报错要讲人话，不要甩 traceback：「没有后端」是第一次运行最常见的问题，
+    # 一堆调用栈对谁都没帮助。
     try:
         backend = detect_backend()
     except RuntimeError:

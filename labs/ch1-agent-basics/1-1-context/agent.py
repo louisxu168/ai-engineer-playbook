@@ -1,24 +1,25 @@
 """
-Lab 01 — Context Ablation.
+实验 1-1：上下文消融（Context Ablation）
 
-    Agent = LLM + context + tools, wrapped in a while loop.
+    Agent = LLM + 上下文 + 工具，套在一个 while 循环里。
 
-An LLM is a pure function: text in, text out. It has no memory and cannot
-execute anything. All it does is emit JSON saying "I'd like to call
-search_products('keyboard')". YOUR Python runs the function, pastes the result
-back into the text, and asks again. Loop until it answers instead of calling.
+LLM 是个纯函数：给它文本，它返回文本。它没有记忆，也不能执行任何东西。
+它唯一会做的，是输出一段 JSON 说「我想调 search_products('keyboard')」。
+真正跑这个函数的是**你的 Python**，跑完把结果拼回文本再问一次。
+一直循环，直到它不再要求调工具、而是直接给答案。
 
-The experiment: run one task five times, deleting one part of the context each
-time, and watch HOW it breaks.
+所以：**模型是个会说 JSON 的规划器，你是它的手。**
 
-    python3 agent.py             # print usage
-    python3 agent.py full        # baseline
-    python3 agent.py all         # run all 5 modes, print a comparison
+这个实验做的事：同一个任务跑五遍，每遍删掉上下文的一个组成部分，看它怎么坏。
 
-No API key needed — it uses your existing Claude Code / Codex login.
+    python3 agent.py             # 打印用法说明
+    python3 agent.py full        # 基线
+    python3 agent.py all         # 五种模式全跑一遍 + 对比
 
-Full walkthrough: README.md (English) / README.zh-CN.md (中文).
-Set LANG below to switch the language of both the output and the prompts.
+不需要 API key —— 会用你已经登录的 Claude Code / Codex。
+
+详细讲解见 README.zh-CN.md（中文）/ README.md（英文）。
+改下面的 LANG 可以同时切换输出和发给模型的提示词的语言。
 """
 
 import json
@@ -29,14 +30,14 @@ from llm import complete, detect_backend, parse_json_reply
 
 
 # --------------------------------------------------------------------------
-#  Settings you may want to flip
+#  可以改的开关（Settings）
 # --------------------------------------------------------------------------
 
 LANG = "zh"          # "zh" | "en" — language of the output AND the prompts
 
 SHOW_PROMPT = True   # True = print the exact text sent to the model each round.
-                     # Worth turning on at least once: it shows that "context"
-                     # is nothing but a string you assembled yourself.
+                     # 强烈建议至少打开一次：你会看到所谓「上下文」
+                     # 无非就是一段你自己拼出来的字符串。
 
 
 MODES = [
@@ -49,14 +50,14 @@ MODES = [
 
 
 # --------------------------------------------------------------------------
-#  All user-visible strings, per language.
-#  This covers the PROMPTS too, not just console output — a model prompted in
-#  English answers in English, so the whole run switches together.
+#  所有对用户可见的文字，按语言分开放。
+#  注意这里也包含**发给模型的提示词**，不只是屏幕输出 —— 用英文提示词问，
+#  模型就用英文回答，所以整个运行过程会一起切换语言。
 # --------------------------------------------------------------------------
 
 TEXT = {
     "zh": {
-        # --- text sent to the model ---
+        # --- 发给模型的文字 ---
         "sys_role": "你是一个一步步解决任务的 agent。",
         "sys_no_tools": "你没有任何工具，只能凭自己的知识回答。",
         "sys_tools": """你可以使用这些工具：
@@ -90,7 +91,7 @@ TEXT = {
         "need_task": "没有任务就没法跑。把任务写在模式后面，或者不带任务运行进入交互输入。",
         "no_tty": "检测到非交互环境（比如管道/脚本里跑），请把任务直接写在命令行：\n    python3 agent.py {mode} \"你的任务\"",
         "rerun_hint": "想用同一个任务跑别的模式做对比，复制这行改模式名即可：",
-        # --- console output ---
+        # --- 屏幕输出 ---
         "no_history_yet": "上下文里还没有历史",
         "only_step": "上下文只含第 {n} 步",
         "steps_range": "上下文含第 {a}~{b} 步",
@@ -125,7 +126,7 @@ TEXT = {
         "no_such_tool": "没有这个工具：",
         "err_product": "没找到这个商品；可选关键词：",
         "err_currency": "不支持的货币 {c}；可选：",
-        # --- summary + help ---
+        # --- 对比表 + 用法说明 ---
         "summary_title": "对比结果",
         "summary_capped": "跑满上限，没给出答案",
         "summary_mode": "模式：",
@@ -294,7 +295,7 @@ Full walkthrough: README.md
 
 
 def t(key, **kwargs):
-    """Look up a string for the current language, filling in any {placeholders}."""
+    """按当前语言取一段文字，并把 {占位符} 填上。"""
     template = TEXT[LANG][key]
     if kwargs:
         return template.format(**kwargs)
@@ -302,21 +303,20 @@ def t(key, **kwargs):
 
 
 # ==========================================================================
-#  Part 1: Tools
+#  第 1 部分：工具（Part 1: Tools）
 # ==========================================================================
-# Tools are ordinary Python functions. Nothing special about them.
-# The model CANNOT run these — it can only name one, and we call it (Part 4).
-# Every tool returns a dict on success and on failure alike, so Part 4 can
-# handle them uniformly.
+# 「工具」就是普通的 Python 函数，没有任何特殊之处。
+# 关键点：**模型执行不了这些函数**，它只能说出名字，由我们（第 4 部分）去调。
+# 每个工具不管成功失败都返回字典，这样第 4 部分可以统一处理。
 
-# Pretend this is a product database. In a real project: a DB or HTTP call.
+# 假装这是个商品数据库。真实项目里这里会是一次数据库查询或 HTTP 请求。
 CATALOG = {
     "mechanical keyboard": {"name": "Keychron Q1 Pro", "usd": 199.0},
     "wireless mouse": {"name": "Logitech MX Master 4", "usd": 119.0},
     "monitor": {"name": "Dell U2723QE 27-inch 4K", "usd": 579.0},
 }
 
-# Pretend this is a live rate table. Each number = "1 USD is this much".
+# 假装这是实时汇率表。数字含义是「1 美元 = 多少这个货币」。
 RATES = {
     "USD": 1.0,
     "CNY": 7.24,
@@ -326,23 +326,23 @@ RATES = {
 
 
 def search_products(keyword):
-    """Tool 1: look up a product by keyword."""
+    """工具 1：按关键词查商品。"""
 
     clean_keyword = str(keyword).strip().lower()
 
-    # dict.get() returns None instead of raising when the key is missing.
+    # 字典的 .get()：找不到返回 None，而不是像 [] 那样直接报错。
     product = CATALOG.get(clean_keyword)
 
     if product is None:
-        # Return an error dict rather than raising: this text goes back into
-        # the context, so the model can see it and correct itself.
+        # 出错也返回字典，不要抛异常 ——
+        # 这段错误信息会被塞回上下文给模型看，让它自己纠正。
         return {"error": t("err_product") + str(sorted(CATALOG))}
 
     return product
 
 
 def get_rate(from_currency, to_currency):
-    """Tool 2: look up the exchange rate between two currencies."""
+    """工具 2：查两种货币之间的汇率。"""
 
     source = str(from_currency).upper()
     target = str(to_currency).upper()
@@ -358,12 +358,11 @@ def get_rate(from_currency, to_currency):
 
 
 def calc(expression):
-    """Tool 3: evaluate an arithmetic expression such as "199 * 3"."""
+    """工具 3：算一个算术表达式，比如 "199 * 3"。"""
 
-    # {"__builtins__": {}} cuts eval off from built-in functions, so a hostile
-    # expression cannot reach the filesystem.
-    # WARNING: do not use eval like this in a real project. It is here only to
-    # keep the lab short.
+    # {"__builtins__": {}} 切断了 eval 对内置函数的访问，
+    # 免得模型传一段危险代码进来（比如删文件）。
+    # ⚠️ 真实项目里不要这样用 eval，这里只是为了让实验代码短一点。
     try:
         answer = eval(str(expression), {"__builtins__": {}}, {})
         return {"result": answer}
@@ -372,17 +371,17 @@ def calc(expression):
 
 
 # ==========================================================================
-#  Part 2: System prompt
+#  第 2 部分：系统提示词（Part 2: System prompt）
 # ==========================================================================
-# The system prompt is the agent's job description, resent on every call.
-# Realise what this means: THIS TEXT IS YOUR PROGRAM. You steer an agent
-# mainly by editing prose, not by editing Python.
+# 系统提示词就是「给模型的岗位说明书」，每次调用都会重新发过去。
+# 想明白这句话的分量：**这段文字就是你的程序**。
+# 你调教 agent 的主要手段不是写 Python，而是改这段中文。
 
 
 def build_system_prompt(mode):
-    """Assemble the system prompt for this run.
+    """拼出这一次实验要用的系统提示词。
 
-    ABLATION: in no_tool_calls mode the tool catalog is simply never shown.
+    ★ 消融点：no_tool_calls 模式下，工具清单根本不给模型看。
     """
 
     parts = []
@@ -393,48 +392,48 @@ def build_system_prompt(mode):
         parts.append(t("sys_protocol"))
     else:
         parts.append(t("sys_tools"))
-        # The "never guess" line only makes sense when tools exist. Leaving it
-        # in no_tool_calls mode contaminates the experiment: the model obeys it
-        # and refuses, so you observe rule-following, not tool-lessness.
-        # We hit this for real on the first run — see SOLUTION.md.
+        # 「不要猜数字」这句只在有工具时才有意义。
+        # 如果把它留在 no_tool_calls 模式里，模型会遵守它、然后拒绝作答 ——
+        # 那你看到的是「守规矩」的后果，而不是「没工具」的后果，实验就污染了。
+        # 这是我们第一次跑时真踩到的坑，详见 SOLUTION.zh-CN.md。
         parts.append(t("sys_protocol") + "\n" + t("sys_no_guessing"))
 
     return "\n\n".join(parts)
 
 
 # ==========================================================================
-#  Part 3: Assembling the context   *** the heart of this lab ***
+#  第 3 部分：拼上下文（Part 3）  ★★★ 整个实验最重要的地方 ★★★
 # ==========================================================================
-# The LLM endpoint is STATELESS. The server stores nothing. On every single
-# call you resend everything that has happened so far.
+# 大模型的接口是**无状态**的。服务器那边什么都不存。
+# 每问一次，你都得把前面发生过的所有事情重新完整发一遍。
 #
-# So "context" is not mystical: it is the string the function below builds.
-# Everything the agent knows on round 5 is whatever that string says.
+# 所以「上下文」不是什么玄学，它就是下面这个函数拼出来的一段字符串。
+# Agent 在第 5 轮「知道」的一切，就是这段字符串里写了的东西。没有别的了。
 #
-# Three of the five ablations live here, one or two lines each. That is the
-# lesson of this lab: context engineering IS editing this string.
+# 五种消融里有三种在这里实现，每种只改一两行。
+# 这就是本实验的核心结论：**上下文工程 = 对这段字符串做增删改**。
 
 
 def pick_visible_steps(steps, mode):
-    """Decide which past steps the model gets to see this round.
+    """决定这一轮让模型看到历史里的哪几步。
 
-    ABLATION: no_history keeps only the most recent step.
+    ★ 消融点：no_history 只留最近一步，前面的全丢掉。
 
-    Split into its own function because run() also needs this to report
-    "context holds steps 1-3" — one rule, one place.
+    单独抽成函数，是因为 run() 打印进度时也要知道「这轮给它看了哪几步」，
+    两边共用同一份规则，不会打架。
     """
 
     if mode == "no_history":
         if len(steps) == 0:
             return []
-        # Wrapped in a list so callers can always iterate the same way.
+        # 用中括号包成列表，这样调用方的 for 循环写法不用改。
         return [steps[-1]]
 
     return steps
 
 
 def describe_visible_steps(visible_steps):
-    """One-line description of what is in context, for the progress output."""
+    """把「这轮给模型看了哪几步」说成一句人话，用来打印进度。"""
 
     if len(visible_steps) == 0:
         return t("no_history_yet")
@@ -449,20 +448,20 @@ def describe_visible_steps(visible_steps):
 
 
 def render_context(task, steps, mode):
-    """Render the trajectory so far into this round's prompt.
+    """把已经走过的每一步，渲染成这一轮要发给模型的提示词。
 
-    "ROUND" vs "STEP" — two views of the same counter:
-        round N = the loop's Nth iteration, i.e. what is happening NOW
-        step  N = the result of round N, already recorded into history
+    「轮」和「步」是什么关系？—— 同一个计数器的两个视角：
+        第 N 轮 = 程序视角：主循环的第 N 次迭代，也就是「现在正在问模型」
+        第 N 步 = 模型视角：第 N 轮那次问答的结果，已经被记进历史了
 
-    So round N sends steps 1 .. N-1. (Except in no_history mode, which
-    deliberately shows only the last one.)
+    所以第 N 轮发出去的提示词里，装的是第 1 步 ~ 第 N-1 步。
+    （no_history 模式除外 —— 那里故意只给它看最后一步。）
 
-    steps is a list of:
-        {"number":    int, same as the round that produced it,
-         "assistant": the model's reply that round (dict),
-         "results":   [{"tool": name, "result": {...}}, ...]  <- a LIST,
-                      because one round can call several tools in parallel}
+    steps 是一个列表，每项形如：
+        {"number":    第几步（整数，等于当时是第几轮）,
+         "assistant": 模型当时的回复（字典）,
+         "results":   [{"tool": 工具名, "result": {...}}, ...]  ← 是个**列表**，
+                      因为一轮可以并行调多个工具}
     """
 
     visible_steps = pick_visible_steps(steps, mode)
@@ -473,8 +472,8 @@ def render_context(task, steps, mode):
 
     for step in visible_steps:
 
-        # ABLATION: no_reasoning strips the model's own thinking.
-        # dict(...) COPIES — without it, pop() would corrupt the stored record.
+        # ★ 消融点：no_reasoning 抹掉模型自己的思考。
+        # dict(...) 是**复制**一份 —— 不复制的话，下一行的 pop() 会改坏原始记录。
         assistant_reply = dict(step["assistant"])
 
         if mode == "no_reasoning":
@@ -482,15 +481,15 @@ def render_context(task, steps, mode):
 
         lines.append(t("ctx_step", n=step["number"]))
 
-        # ensure_ascii=False keeps non-ASCII readable instead of \uXXXX escapes.
+        # ensure_ascii=False 让中文正常显示，不然会变成 \uXXXX 那种转义。
         lines.append(t("ctx_your_reply")
                      + json.dumps(assistant_reply, ensure_ascii=False))
 
-        # One round may hold several results, so loop. Each line is labelled
-        # with its tool name — otherwise the model cannot tell them apart.
+        # 一轮可能有好几个结果，所以要再套一层循环。
+        # 每行都标上是哪个工具返回的，否则模型分不清哪个结果对应哪个调用。
         for one_result in step["results"]:
 
-            # ABLATION: no_tool_results replaces the payload with a placeholder.
+            # ★ 消融点：no_tool_results 把返回值换成一句占位文字。
             if mode == "no_tool_results":
                 result_text = t("ctx_hidden")
             else:
@@ -506,29 +505,31 @@ def render_context(task, steps, mode):
     return "\n".join(lines)
 
 
-# Recap of the ablations:
-#   no_history        drop all but the latest step   -> it redoes finished work
-#   no_reasoning      drop the reasoning field       -> it re-derives its plan
-#   no_tool_results   hide the return values         -> it invents numbers
-#   no_tool_calls     (in build_system_prompt above) -> it hallucinates
+# 小结四种消融：
+#   no_history        删掉除最近一步外的历史   → 它会重复做已经做过的事
+#   no_reasoning      删掉 reasoning 字段      → 它每轮都要重新想一遍
+#   no_tool_results   藏起工具返回值           → 它只能瞎编
+#   no_tool_calls     （在上面的系统提示词里）  → 它自信地胡说
 #
-# Under ten lines in total. Not one of them touches the model or the loop.
+# 加起来不到十行。**没有一行是在改模型或者改循环。**
 
 
 # ==========================================================================
-#  Part 4: Running the tools the model named
+#  第 4 部分：执行模型点名的工具（Part 4）
 # ==========================================================================
 
 
 def extract_tool_calls(reply):
-    """Normalise the reply into a list of tool calls.
+    """把模型回复归一成「要调的工具」列表。
 
-    Accepts both shapes the model might send:
-        new (parallel-capable): {"calls": [{"tool": "a", "args": {}}, ...]}
-        old (single):           {"tool": "a", "args": {}}
+    两种写法都兜住：
+        新写法（可并行）：{"calls": [{"tool": "a", "args": {}}, ...]}
+        老写法（只一个）：{"tool": "a", "args": {}}
 
-    Normalising at the edge keeps run() free of shape-checking branches.
-    Returns [] when no tool was requested.
+    在入口把杂乱输入收拾成统一格式，后面 run() 里就不用到处写 if 判断形状。
+    这叫「归一化」，真实项目里很常见。
+
+    返回：列表。没有要调的工具就返回空列表 []。
     """
 
     calls = reply.get("calls")
@@ -543,11 +544,11 @@ def extract_tool_calls(reply):
 
 
 def execute_tool(tool_name, tool_args):
-    """Actually call the tool the model asked for. Returns a dict."""
+    """模型说它想调某个工具，这里真正去调。返回一个字典。"""
 
-    # Deliberately a plain if/elif chain: you can see at a glance which name
-    # maps to which function. The idiomatic version (a name->function dict plus
-    # **kwargs unpacking) is shorter but harder for a beginner to read.
+    # 这里故意用最笨的 if / elif：一眼就能看懂哪个名字对应哪个函数。
+    # 老手通常写成「名字 -> 函数」的字典配合 **kwargs 解包，代码更短，
+    # 但对新手不好读，所以这里不用。
 
     if tool_name == "search_products":
         return search_products(tool_args.get("keyword"))
@@ -560,18 +561,18 @@ def execute_tool(tool_name, tool_args):
         return calc(tool_args.get("expression"))
 
     else:
-        # The model does sometimes name a tool that does not exist. Do not
-        # crash — hand the error back so it can pick a different one.
+        # 模型有时真的会点名一个根本不存在的工具（实验里会遇到）。
+        # 不要让程序崩掉，把「没有这个工具」当错误信息还给它，让它自己换一个。
         return {"error": t("no_such_tool") + str(tool_name)}
 
 
 # ==========================================================================
-#  Part 5: The loop   <- the whole agent, right here
+#  第 5 部分：主循环（Part 5）  ← Agent 的心脏，就这么点东西
 # ==========================================================================
 
 
 def run(task, mode="full", max_iterations=8, backend=None, verbose=True):
-    """Run one full agent loop. Returns a dict of statistics."""
+    """跑一次完整的 agent 循环。返回一个记录统计结果的字典。"""
 
     steps = []
     tool_call_count = 0
@@ -580,7 +581,7 @@ def run(task, mode="full", max_iterations=8, backend=None, verbose=True):
 
     for round_number in range(1, max_iterations + 1):
 
-        # ---- 1. Assemble everything so far into a prompt ----
+        # ---- 第一步：把目前为止的一切拼成提示词 ----
         prompt = render_context(task, steps, mode)
 
         if verbose:
@@ -600,9 +601,9 @@ def run(task, mode="full", max_iterations=8, backend=None, verbose=True):
                 print("  | " + one_line)
             print("  +" + "-" * 60)
 
-        # ---- 2. Ask the model ----
-        # Slowest line in the program: 5-15s per call on the CLI backends.
-        # Print "asking" first, or the screen looks frozen.
+        # ---- 第二步：问模型 ----
+        # 这是整个程序最慢的地方：走 CLI 后端每次要等 5~15 秒。
+        # 先打印一句「正在问模型…」，否则屏幕半天不动，看着像卡死了。
         if verbose:
             print("")
             print(t("asking"), end="", flush=True)
@@ -616,18 +617,18 @@ def run(task, mode="full", max_iterations=8, backend=None, verbose=True):
 
         reply = parse_json_reply(raw_text)
 
-        # `reasoning` arrives in the SAME reply as the tool calls, so print it
-        # before them. Reads in the natural order: think -> call -> result.
+        # reasoning 是**这一轮就返回**的，跟工具调用装在同一个 JSON 里，
+        # 所以要在工具之前打印，读起来才顺：思考 → 调工具 → 拿结果。
         if verbose and reply.get("reasoning"):
             print("")
             print(t("thinking") + str(reply["reasoning"]))
             if mode == "no_reasoning":
-                # It was produced — it just won't be fed back next round.
+                # 这句思考确实产生了，只是不会被拼回下一轮的上下文。
                 print(t("thinking_dropped"))
 
-        # ---- 3. Stop, or keep going? ----
-        # Two stopping conditions: an "answer" field, or no tool requested at
-        # all (it replied in prose, which also counts as done).
+        # ---- 第三步：判断该停了还是该继续 ----
+        # 两种停止条件：给了 "answer" 字段；或者根本没要求调工具
+        # （说明它在用大白话回答，也算做完了）。
         has_answer = "answer" in reply
         wanted_calls = extract_tool_calls(reply)
 
@@ -635,8 +636,8 @@ def run(task, mode="full", max_iterations=8, backend=None, verbose=True):
             if has_answer:
                 answer = reply["answer"]
             else:
-                # No parseable JSON: treat the raw text as the answer.
-                # Common in no_tool_calls mode, where it just writes prose.
+                # 连 JSON 都没解析出来，那就把原始文本当答案。
+                # no_tool_calls 模式下经常这样 —— 它直接用散文回答了。
                 answer = raw_text.strip()
 
             if verbose:
@@ -652,11 +653,10 @@ def run(task, mode="full", max_iterations=8, backend=None, verbose=True):
                 "hit_cap": False,
             }
 
-        # ---- 4. Run every tool it named, collect the results ----
-        # A round may hold several calls when the model judges them independent.
-        # Real projects would run them on threads; sequential here for clarity.
-        # What we save is ROUND TRIPS to the model (seconds each), not the local
-        # function calls (microseconds each).
+        # ---- 第四步：执行它点名的每个工具，把结果攒起来 ----
+        # 当模型判断几个工具互不依赖时，一轮可能要调好几个。
+        # 真实项目里这些独立调用可以用多线程真正同时跑，这里为了好读用了顺序执行 ——
+        # 省掉的是**往返模型的次数**（每次好几秒），而不是本地函数调用（几微秒）。
         results_this_round = []
 
         if verbose:
@@ -677,14 +677,14 @@ def run(task, mode="full", max_iterations=8, backend=None, verbose=True):
                               total=len(wanted_calls))
                 else:
                     label = t("tool")
-                # Call and result on separate lines; one line gets too long.
+                # 调用和返回值分两行打印，挤在一行太长看不清。
                 print("  " + label + " " + str(tool_name)
                       + "(" + str(tool_args) + ")")
                 print("        -> " + str(result))
 
-            # Store the tool name alongside its result: with several results in
-            # one round, the model needs to know which is which. (Real APIs pair
-            # them with tool_use_id; same idea.)
+            # 把工具名和结果存在一起：一轮有多个结果时，
+            # 模型需要知道哪个结果是哪个工具返回的。
+            # （真实 API 里靠 tool_use_id 配对，道理一样。）
             results_this_round.append({
                 "tool": tool_name,
                 "result": result,
@@ -693,15 +693,15 @@ def run(task, mode="full", max_iterations=8, backend=None, verbose=True):
         if verbose and len(wanted_calls) > 1:
             print(t("parallel", n=len(wanted_calls)))
 
-        # Append to steps. Next round render_context() folds this back into the
-        # prompt — THIS IS THE AGENT'S MEMORY, all of it.
+        # 存进 steps。下一轮 render_context() 会把它拼回提示词里 ——
+        # **这就是 agent 的记忆，全部的记忆。**
         steps.append({
             "number": round_number,
             "assistant": reply,
             "results": results_this_round,
         })
 
-    # Ran out of rounds without an answer (common in no_history mode).
+    # 循环跑满了还没给答案（no_history 模式经常这样）。
     if verbose:
         print("")
         print(t("hit_cap", n=max_iterations))
@@ -717,21 +717,19 @@ def run(task, mode="full", max_iterations=8, backend=None, verbose=True):
 
 
 # ==========================================================================
-#  Part 6: Command line entry point
+#  第 6 部分：命令行入口（Part 6）
 # ==========================================================================
-# Argument plumbing only — nothing to do with how agents work. Skip on a first
-# read.
+# 只是处理命令行参数，跟 agent 原理没关系，第一次读可以跳过。
 
 
 def ask_for_task(mode):
-    """Get the task from the user. There is deliberately NO default.
+    """让用户输入任务。**故意不设默认值。**
 
-    Picking a task for them hides the most important knob in the lab: the
-    ablations only mean something when you compare modes on the SAME task, and
-    that only sinks in if you chose the task yourself.
+    替他选一个任务，会盖掉本实验最关键的一个旋钮：
+    消融对比只有在任务完全相同时才成立，而这件事只有他自己选过任务才体会得到。
     """
-    # Piped/scripted runs have no keyboard to prompt — fail with instructions
-    # rather than hanging on input().
+    # 管道或脚本里跑时没有键盘可输入 —— 给出明确指引后退出，
+    # 而不是卡死在 input() 上。
     if not sys.stdin.isatty():
         print("")
         print(t("no_tty", mode=mode))
@@ -741,7 +739,7 @@ def ask_for_task(mode):
     if answer:
         return answer
 
-    # Empty input: show examples and ask once more.
+    # 直接回车：列几个例子，再问一次。
     print("")
     print(t("examples_title"))
     examples = t("task_examples")
@@ -758,10 +756,9 @@ def ask_for_task(mode):
 
 
 def print_rerun_hint(task, mode_arg):
-    """After a run, print the exact command to try the SAME task in another mode.
+    """跑完之后，打印用**同一个任务**换个模式跑的完整命令。
 
-    Comparing ablations is only valid on an identical task, and retyping a long
-    question by hand is where that quietly goes wrong.
+    消融对比只有在任务完全相同时才成立，而手抄一长串任务正是悄悄出错的地方。
     """
     others = []
     for m in MODES:
@@ -799,7 +796,7 @@ def print_summary(results):
 
 if __name__ == "__main__":
 
-    # No arguments: show what the options are rather than silently picking one.
+    # 不带参数：把有哪些选项告诉他，而不是闷头替他选一个。
     if len(sys.argv) == 1:
         print_help()
         sys.exit(0)
@@ -810,11 +807,11 @@ if __name__ == "__main__":
         print_help()
         sys.exit(0)
 
-    # Optional second argument: your own task, in quotes.
+    # 第二个参数（可选）：你自己的任务，记得用引号包起来。
     if len(sys.argv) > 2:
-        task = " ".join(sys.argv[2:])   # rejoin if the quotes were forgotten
+        task = " ".join(sys.argv[2:])   # 没加引号也兜住：把剩下的都拼回去
     else:
-        # No task on the command line -> ask. No silent default: see ask_for_task().
+        # 命令行没给任务 → 问他要。没有静默默认值，见 ask_for_task()。
         task = ask_for_task(mode_arg)
 
     if mode_arg not in MODES and mode_arg != "all":
@@ -823,8 +820,8 @@ if __name__ == "__main__":
         print_help()
         sys.exit(1)
 
-    # Friendly failure instead of a raw traceback: "no backend" is by far the
-    # most likely first-run problem, and a stack trace helps nobody.
+    # 报错要讲人话，不要甩 traceback：「没有后端」是第一次运行最常见的问题，
+    # 一堆调用栈对谁都没帮助。
     try:
         backend = detect_backend()
     except RuntimeError:
@@ -837,7 +834,7 @@ if __name__ == "__main__":
     print(t("task_label") + task)
 
     if mode_arg == "all":
-        # Say up front how long this takes, so it doesn't look hung.
+        # 先把耗时说在前面，免得他以为程序卡死了。
         print(t("all_warning"))
         if SHOW_PROMPT:
             print(t("all_show_prompt"))

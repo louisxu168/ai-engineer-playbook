@@ -236,6 +236,11 @@ The code deliberately avoids Python shorthand (ternaries, comprehensions,
 `**kwargs` unpacking) in favour of the dumbest readable form — **if you can
 write `for` and `if`, you can read it.**
 
+> **Code comments are in Chinese**, with section headers written in both
+> languages so you can navigate. This English README carries the full
+> walkthrough — concepts, traces, and what each ablation does — so you can
+> follow the code from here without reading the comments.
+
 If "an LLM is just a function" is news to you, start at lab 01. That's the
 whole point of it.
 

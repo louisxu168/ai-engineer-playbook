@@ -1,374 +1,326 @@
-# Lab 01: Context Ablation
+# Lab 1-1: Context Ablation
 
 **English** · [简体中文](README.zh-CN.md)
 
-> ## 🚀 Run it first (nothing to install)
+> **What you'll learn**
 >
-> ```bash
-> cd labs/ch1-agent-basics/1-1-context
-> python3 agent.py full
-> ```
+> 1. An agent is not mysterious — it's `LLM + context + tools` in a while loop
+> 2. "Context" isn't magic either: **it's a string you assembled yourself**
+> 3. Delete different parts of it and the agent breaks in **four distinct ways** — and those four are the four incidents you'll hit in production
 >
-> **That's it — two lines.** No `pip install`, no API key, no config file. If you
-> have Claude Code or Codex installed, it finds them automatically.
+> **How to work through it**: every step is *predict → run → compare → find the
+> line in the code*. **Being wrong is where the learning is**, so resist opening
+> SOLUTION.md early.
 >
-> **Takes about 30 seconds.** You should see something like:
->
-> ```
-> Backend: claude
-> Task: I want to buy 3 mechanical keyboards...
->
-> ============================================
->   Round 1 of 8     mode: full
-> ============================================
->   asking the model... took 7.2s
->   [thinking] Look up the price and the rate in parallel; they're independent.
->   [tool 1/2] search_products({'keyword': 'mechanical keyboard'})
->         -> {'name': 'Keychron Q1 Pro', 'usd': 199.0}
->   ...
->   [answer] ...about 4322.28 CNY.
-> ```
->
-> If you got an `[answer]` line, it worked. **Read on for the other four modes.**
->
-> Forgot the commands? Run `python3 agent.py` with no arguments for usage.
->
-> *(Output is Chinese by default — set `LANG = "en"` at the top of `agent.py`.)*
-
-**The question:** what exactly *is* an agent's "context", and how does it break
-when you delete a piece of it?
+> **Time**: about 40 minutes done properly. 3 minutes if you just want to see it run.
 
 ---
 
-## 1. The one idea
-
-> **Agent = LLM + context + tools, wrapped in a while loop.**
-
-An LLM is a pure function: text in, text out. It has no memory, and it
-**cannot execute anything**.
-
-The only thing it can do is emit some JSON saying *"I'd like to call
-`search_products('keyboard')`"*. The thing that actually runs that function is
-**your Python**. You paste the return value back into the text and ask again.
-Loop until it stops asking for tools and gives an answer instead.
-
-```
-loop:
-    reply = llm(messages)              # model decides what to do next
-    if reply has no tool calls: DONE   # it answered -> exit
-    for each tool call:
-        result = your_code_runs_it(...)   # the model can't; you can
-        messages.append(result)           # paste the result back
-```
-
-That's the whole ReAct loop. In `agent.py` it's `run()` — about 30 lines.
-
-**The thing to internalise:** the model is a planner that speaks JSON. You are
-its hands.
-
-### One round can call several tools (parallel tool calls)
-
-Note that `for each tool call` is plural — **one model reply can name several
-tools at once**. In real APIs (Anthropic, OpenAI) a single assistant message
-can carry multiple `tool_use` blocks; you run them all and return every result
-**in one message**.
-
-Whether calls can be parallel comes down to **data dependency**:
-
-| Call | Depends on | Parallel? |
-|---|---|---|
-| `search_products("keyboard")` → 199 | nothing | ✅ independent of the next one |
-| `get_rate("USD","CNY")` → 7.24 | nothing | ✅ can go together |
-| `calc("199 * 3")` → 597 | the first one | ❌ needs 199 first |
-| `calc("597 * 7.24")` | the two above | ❌ needs 597 and 7.24 |
-
-So the optimum for this task is **3 rounds** (1+2 together → 3 → 4), not 4.
-
-**What you save is round trips, not tool calls.** Each round trip waits
-6–13 seconds on the model; a local function takes microseconds. Round trips are
-the entire cost. That's why real agents care about parallelism.
-
-> Worth remembering: in real APIs, multiple `tool_result` blocks **must go back
-> in a single message**. Split them across messages and the model gradually
-> learns "I'd better do these one at a time" — you train the parallelism out of it.
-
-### So who enforces the dependencies?
-
-Key question, and the answer may surprise you: **the judgement happens in the
-prompt, the enforcement happens in the loop, and nothing validates either.**
-
-| | Who does it | Which layer |
-|---|---|---|
-| **Deciding** what can be parallel | the model, on its own | Prompt — literally two sentences in `sys_protocol` |
-| **Enforcing** the ordering | the loop structure | Code — to use a result you must wait a round |
-
-The entire "dependency management" in `agent.py` is these two lines of prose:
-
-```
-- If the tools are INDEPENDENT, put them all in one reply.
-- If a later tool needs an earlier one's return value, request only the
-  earlier one now.
-```
-
-**Not one line of code checks whether it got that right.** No dependency graph,
-no topological sort, no validation. The model says parallel, `run()` runs them.
-
-So what happens when it judges wrong? Both cases show up in practice:
-
-**Case 1 — it routes around the dependency:**
-
-```python
-[tool] calc({'expression': '199.0 * 3'})           -> 597.0
-[tool] calc({'expression': '199.0 * 3 * 7.24'})    -> 4322.28
-```
-
-The second call *conceptually* depends on the first, but instead of writing
-`597 * 7.24` it **inlined `199.0 * 3`** — it already had 199 and 7.24 from the
-previous round, so it could substitute the values and the dependency vanished.
-
-**Case 2 — it can't route around it, and breaks** (seen in `no_tool_results`):
-
-```python
-[tool] calc({'expression': '<the USD total from step 5> * <the rate>'})
-       -> {'error': "invalid syntax"}
-```
-
-It tried to reference a value it didn't have, could only write a placeholder,
-and `eval` failed.
-
-**The underlying mechanism:** tool arguments are **literals, not references**.
-You cannot write "the previous tool's return value" into an argument. So
-dependencies aren't enforced by anyone — they're **physically unwritable**. If
-you don't have the number, you can't type it.
-
-### Three approaches, in ascending order
-
-| Approach | What guarantees the dependency | Cost |
-|---|---|---|
-| Sequential (one per round) | the loop structure | more round trips, slow |
-| **Parallel (what this lab does)** | **model judgement + literal-only arguments** | wrong judgement → wrong result |
-| Model writes code that calls tools | variable references, language-level | needs a sandbox |
-
-The third is Anthropic's Programmatic Tool Calling — the model writes actual
-code and calls tools from inside it, so dependencies are expressed as variables:
-
-```python
-p = search_products("keyboard")
-r = get_rate("USD", "CNY")
-total = p["usd"] * 3 * r["rate"]      # a real dependency
-```
-
-Intermediate results never enter the context either, which saves tokens. The
-price is a sandbox to run it in.
-
-**We sit in the middle tier — that's the mainstream approach, not a
-simplification.** The mainstream answer really is "accept that the model may
-judge wrong, and let tool errors flow back so it can correct itself." That's
-also why every tool in `agent.py` does `return {"error": ...}` instead of
-raising: the error text goes back into the context where the model can see and
-fix it. Fault tolerance is part of the design.
-
----
-
-## 2. What "context" actually means
-
-Every time you call the LLM you resend **the entire conversation**. The server
-stores nothing. That array is the context, and it has five parts:
-
-| Part | Role | Written by |
-|---|---|---|
-| System prompt | who the agent is, what the rules are | you |
-| Tool catalog | what it can call, with what arguments | you |
-| User message | the task | the user |
-| Assistant messages | its reasoning and its tool requests | the model |
-| Tool messages | what your code returned | your code |
-
-Everything the agent knows on round 7 is what's in that array. **There is
-nothing else.**
-
-### "Round" vs "step"
-
-Two views of the same counter, which trips people up:
-
-- **Round N** — the program's view: the loop's Nth iteration, happening *now*
-- **Step N** — the model's view: the result of round N, already in history
-
-So round N sends steps 1 through N-1:
-
-```
-Round 1  ->  history is empty
-Round 2  ->  history has step 1
-Round 3  ->  history has steps 1, 2
-Round 4  ->  history has steps 1, 2, 3
-```
-
-In one line: **"round" is what's happening, "step" is what already happened.**
-The progress output prints this for you (`context holds steps 1-3`).
-
----
-
-## 3. What the experiment does
-
-An **ablation study**: run the same task five times, deleting one part of the
-context each time, and observe how it breaks. The method is borrowed from ML
-research — to prove a component matters, remove it and measure the damage.
-
-| Mode | What's deleted | Expected failure |
-|---|---|---|
-| `full` | nothing (baseline) | completes normally |
-| `no_history` | everything but the latest step | repeats tools it already called, loops to the cap |
-| `no_reasoning` | the model's own thinking | still works, but takes more rounds — it re-derives its plan every time |
-| `no_tool_calls` | tools aren't offered at all | confidently makes up an answer |
-| `no_tool_results` | results replaced with `[result hidden]` | calls tools, sees nothing, invents numbers |
-
-**Read those failure modes again.** Every one is a bug you will hit for real:
-
-- `no_history` = your context window got truncated
-- `no_tool_results` = your tool integration is broken
-- `no_tool_calls` = misconfigured permissions, tool never registered
-- `no_reasoning` = you dropped thinking blocks to save tokens
-
-This lab is a **field guide to agent failures**.
-
----
-
-## 4. Doing it
-
-### 0. Setup
+## Step 0: Get it running (3 min)
 
 ```bash
-pip install -r requirements.txt
-python3 -c "import llm; print(llm.detect_backend())"
+cd labs/ch1-agent-basics/1-1-context
+python3 agent.py full
 ```
 
-If that prints `claude` or `codex`, you're set — no API key needed.
-Want it faster: `export LAB_BACKEND=api DEEPSEEK_API_KEY=sk-...`
+**That's it — two lines.** No `pip install`, no API key, no config file. If you
+have Claude Code or Codex installed, it finds them automatically.
 
-For English output, set `LANG = "en"` at the top of `agent.py`. That switches
-both the console output and the prompts sent to the model.
+It will ask what task you want the agent to do. Press Enter for examples and
+copy one, e.g.:
 
-### 1. Read the code first
+```
+I want to buy 3 mechanical keyboards. Look up the unit price, compute the total, and convert it to CNY.
+```
 
-`agent.py` is written **in reading order**, in six labelled parts:
+> Output is Chinese by default. Set `LANG = "en"` at the top of `agent.py` to
+> switch both the console output and the prompts sent to the model.
 
-| Part | Content | Difficulty |
-|---|---|---|
-| 1 | Tools — three plain Python functions | easy |
-| 2 | System prompt — what tools exist, what format to reply in | easy |
-| 3 | **Assembling the context** ★ all five ablations live here | core |
-| 4 | Running the tools — an if/elif chain | easy |
-| 5 | The loop — the heart of the agent | core |
-| 6 | CLI entry point — irrelevant to how agents work | skip |
+### 👀 You should see
 
-`llm.py` next door is the backend adapter. **Skip it entirely on a first read** —
-all you need to know is that it gives you `complete(prompt, system)`.
+```
+============================================
+  Round 1 of 8     mode: full
+  no history in context yet     prompt 141 chars
+============================================
+  asking the model... took 7.2s
+  [thinking] Look up the price and the rate in parallel; they're independent.
+  [tool 1/2] search_products({'keyword': 'mechanical keyboard'})
+        -> {'name': 'Keychron Q1 Pro', 'usd': 199.0}
+  ...
+  [answer] ...about 4322.28 CNY.
+```
 
-Read with these three questions in mind:
+**An `[answer]` line means it worked.** If not, see "Stuck?" at the bottom.
 
-1. Which function is the loop? Which line decides when to stop?
-2. Which line does each ablation change?
-3. Where does a tool the model named actually get executed?
+### ✅ Write these three numbers down
 
-### 2. See the context with your own eyes
+Every later step compares against them:
 
-At the top of `agent.py`:
+| | Your baseline |
+|---|---|
+| How many rounds? | ___ |
+| How many tool calls? | ___ |
+| Was the answer right? | ___ |
+
+---
+
+## Step 1: See what "context" actually is (5 min)
+
+### 🔧 Do this
+
+Open `agent.py` and flip this line at the top:
 
 ```python
 SHOW_PROMPT = True
 ```
 
-Leave it on and run `python3 agent.py full`. It prints the exact text sent to
-the model each round:
+Run `python3 agent.py full` again.
+
+### 👀 You'll see
+
+Every round it prints **the exact text sent to the model**:
 
 ```
-  +--- exact text sent to the model ------------
+  +--- exact text sent to the model --------
   | TASK: I want to buy 3 mechanical keyboards...
   |
+  | --- step 1 ---
+  | You replied: {"reasoning": "look up price...", "calls": [...]}
+  | Tool search_products returned: {"name": "Keychron Q1 Pro", "usd": 199.0}
+  |
   | Now give your next JSON reply.
-  +---------------------------------------------
+  +----------------------------------------
 ```
 
-After that one look, the mystique is gone: **"context" is a string you built.**
+### 💡 What you learned
 
-Keep it on and run `python3 agent.py no_history`, then compare the two dumps.
-Which sections are missing? That beats reading the docs ten times.
+**The LLM endpoint is stateless.** The server stores nothing. Every single call,
+you resend **everything that has happened so far**.
 
-### 3. Run the baseline
+So "context" is that string in the box. **Everything the agent knows on round 5
+is whatever that text says. There is nothing else.**
 
-```bash
-python3 agent.py full
-```
-
-Watch the `[tool]` lines. Count the rounds and the tool calls.
-
-### 4. The important bit: predict, *then* run
-
-Run the other four modes one at a time — but **write down your prediction
-first**. More rounds or fewer? How many tool calls? Is the answer still right?
-
-```bash
-python3 agent.py no_history
-python3 agent.py no_reasoning
-python3 agent.py no_tool_calls
-python3 agent.py no_tool_results
-```
-
-Once you've done all four and predicted each, run the comparison:
-
-```bash
-python3 agent.py all
-```
-
-> ⚠️ **`all` is not a sixth mode** — it runs the five above back to back. So
-> you'll see five blocks of output, each restarting from "Round 1". That looks
-> like an infinite loop but isn't. Up to 40 model calls, roughly **3–8 minutes**
-> on the CLI backends. **Turn `SHOW_PROMPT` back to `False` first**, or the
-> comparison table will scroll away.
-
-**Being wrong is where the learning is.** If you predicted right you already
-knew it. Don't read `SOLUTION.md` yet.
-
-### 5. Trace it back to the code
-
-For every result that didn't match your prediction, go find **the line that
-caused it**.
-
-Hint: all five ablations are in `pick_visible_steps()`, `render_context()` and
-`build_system_prompt()` — one or two lines each. That's the point of the lab:
-**context engineering is editing a string.**
+Also watch the `prompt NNN chars` number grow each round — that's context
+accumulating.
 
 ---
 
-## 5. Exercises: break it on purpose
+## Step 2: Predict, then delete the history (8 min)
 
-Edit `agent.py`, predict, verify:
+### 🤔 Predict first (don't skip)
 
-1. **Delete the "never guess" line** (`sys_no_guessing`) — does it still look
-   things up?
-2. **Change a tool description to just `"a tool"`** — does it still pick the
-   right one? (Point: **tool descriptions are part of your prompt.**)
-3. **Make `get_rate` return a wrong rate** (say 999) — does it notice, or
-   swallow it?
-4. **Set `max_iterations` to 2** — what does a truncated agent produce?
-5. **Add a fourth tool** (e.g. `apply_discount(price, percent)`) — you need to
-   change **three** places. Find them.
+We're about to delete **all history except the most recent step**. Guess:
 
-2 and 3 are the ones worth doing. They make the same point: **the system prompt
-and the tool descriptions are your program.** What you're really learning is how
-to write and debug code in English.
+- More rounds or fewer? ___
+- How many tool calls? ___
+- Will the answer still be right? ___
+
+### 🔧 Do this
+
+```bash
+python3 agent.py no_history "(paste the SAME task you used in step 0)"
+```
+
+> ⚠️ **The task must be identical**, or it isn't a comparison. The program
+> prints a ready-made command after each run — copy it and change the mode.
+
+### 👀 What to watch
+
+The middle line of each round header:
+
+```
+Round 3 | context holds step 2 only | prompt 204 chars
+```
+
+In `full` mode it said `context holds steps 1-2` and the character count climbed
+past 700. Here it's always one step, and the count stays flat around 200.
+
+### 💡 What you learned
+
+`no_history` is the real-world incident **"your context window got truncated"**.
+Conversation too long, compacted, pruned — and the agent starts redoing work it
+already finished.
+
+> **If it didn't break** (still got the right answer), you've hit something
+> interesting. Don't look it up yet — think about it: round 4's context contains
+> no intermediate result at all. So where did it get that number?
 
 ---
 
-## 6. Odds and ends
+## Step 3: Run the other three ablations (15 min)
 
-- **`temperature`** — randomness. Agents want it low (0–0.3) so tool arguments
-  stay deterministic.
-- **`max_iterations`** — the safety valve. Without it, `no_history` mode bills
-  you forever. **Every production agent needs one.**
-- **Why tool calls are JSON text, not structured `tool_use`** — because we go
-  through the Claude Code / Codex CLI, whose harness owns that channel. Use
-  `LAB_BACKEND=api` to see real structured tool calling.
+**Predict before each one.** Fill the table before reading on:
+
+| Mode | What's deleted | Predicted rounds | Predicted: still right? | Actual |
+|---|---|---|---|---|
+| `no_reasoning` | the model's own thinking | | | |
+| `no_tool_calls` | tools aren't offered at all | | | |
+| `no_tool_results` | tools run, results hidden | | | |
+
+```bash
+python3 agent.py no_reasoning "(same task)"
+python3 agent.py no_tool_calls "(same task)"
+python3 agent.py no_tool_results "(same task)"
+```
+
+Then `python3 agent.py all` for the comparison table (3–8 minutes — **set
+`SHOW_PROMPT` back to `False` first** or it'll scroll away).
+
+### 💡 What you learned
+
+Each failure mode maps onto a real production incident:
+
+| Mode | Real-world failure |
+|---|---|
+| `no_history` | context window truncated |
+| `no_reasoning` | you dropped thinking blocks to save tokens |
+| `no_tool_calls` | misconfigured permissions, tool never registered |
+| `no_tool_results` | broken tool integration |
+
+**This lab is a field guide to agent failures.**
 
 ---
 
-Read [SOLUTION.md](SOLUTION.md) after you've tried it.
+## Step 4: Go find the line (10 min)
+
+### 🔧 Do this
+
+For every result that didn't match your prediction, find **the line that caused
+it** in `agent.py`.
+
+Hint — all four ablations live in two places:
+
+- `pick_visible_steps()` and `render_context()` — Part 3
+- `build_system_prompt()` — Part 2
+
+### 💡 What you learned
+
+Count the lines you found: **under ten in total.**
+
+**Not one of them touches the model. Not one touches the loop.**
+
+> The one thing to remember from this lab:
+> **context engineering is editing a string.**
+
+---
+
+## Step 5: Change it yourself (exercises)
+
+**Predict the outcome of each before you run it.**
+
+### Exercise 1 ⭐ Delete the "never guess" line
+
+Find `sys_no_guessing` in `agent.py` and take it out of the system prompt.
+
+**Predict**: will it still call `search_products`?
+
+### Exercise 2 ⭐⭐ Ruin a tool description
+
+Change the `search_products` line in `sys_tools` to just `a tool`.
+
+**Predict**: can it still pick the right one?
+
+> The point: **the description text is the model's only basis for choosing.**
+> Tool descriptions aren't comments — they're part of your prompt.
+
+### Exercise 3 ⭐⭐ Make a tool return bad data
+
+Make `get_rate` always return `{"rate": 999}`.
+
+**Predict**: will it notice, or swallow it and report an absurd figure?
+
+### Exercise 4 ⭐ Cut the agent off
+
+Change `max_iterations` in `run()` to `2`.
+
+**Predict**: what does a truncated agent produce?
+
+### Exercise 5 ⭐⭐⭐ Add a fourth tool
+
+Add `apply_discount(price, percent)` so the agent can compute discounts.
+
+**Work out how many places you need to change before you start.** (It's three —
+miss one and you get "the function is written, it's wired up, and it's never
+called".)
+
+### Exercise 6 ⭐⭐⭐ Combined ablation (challenge)
+
+If you hit "`no_history` didn't break" in step 2, add a
+`no_history_no_reasoning` mode where both conditions apply.
+
+**Predict**: will it break this time? Why?
+
+---
+
+## Check your answers
+
+Only after doing the above → **[SOLUTION.md](SOLUTION.md)**
+
+It has the measured results, explanations for two surprising findings, and all
+the exercise answers.
+
+---
+
+## Appendix: concept reference
+
+Look things up here while reading the code.
+
+### The agent loop
+
+```
+loop:
+    reply = llm(messages)              # the model says what it wants
+    if no tool calls: DONE             # it answered -> exit
+    for each tool call:
+        result = your_code_runs_it(...)   # the model can't; you can
+        messages.append(result)           # paste it back
+```
+
+**The model is a planner that speaks JSON. You are its hands.**
+
+### The five parts of context
+
+| Part | Role | Written by |
+|---|---|---|
+| System prompt | who the agent is, the rules | you |
+| Tool catalog | what it can call, with what arguments | you |
+| User message | the task | the user |
+| Assistant messages | its reasoning and its tool requests | the model |
+| Tool messages | what your code returned | your code |
+
+### "Round" vs "step"
+
+- **Round N** — the program's view: the loop's Nth iteration, happening *now*
+- **Step N** — the model's view: round N's result, already in history
+
+So round N sends steps 1 through N-1.
+
+### One round can call several tools
+
+A single reply can name several tools, provided they're **independent**:
+
+| Call | Depends on | Parallel? |
+|---|---|---|
+| `search_products("keyboard")` → 199 | nothing | ✅ |
+| `get_rate("USD","CNY")` → 7.24 | nothing | ✅ goes with the above |
+| `calc("199 * 3")` → 597 | the first one | ❌ needs 199 first |
+
+**What you save is round trips, not tool calls** — a round trip waits 6–13
+seconds; a local function takes microseconds.
+
+What enforces the dependencies? **Only two sentences in the system prompt —
+there is no validation in the code.** The underlying mechanism: tool arguments
+are **literals, not references**, so you physically cannot write a value you
+don't have yet.
+
+---
+
+## Stuck?
+
+| What you see | What to do |
+|---|---|
+| `x No usable backend found` | Install any one of the three options it prints (Claude Code is easiest) |
+| Nothing happens for tens of seconds | **Normal** — each model call takes 5–15s |
+| Forgot the commands | Run `python3 agent.py` with no arguments |
+| Results don't match the docs | **Normal** — models are stochastic. Ablation studies need multiple runs and trend-reading |

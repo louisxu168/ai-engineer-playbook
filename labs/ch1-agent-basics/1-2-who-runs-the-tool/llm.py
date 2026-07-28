@@ -37,8 +37,14 @@ import os
 import re
 import shutil
 import subprocess
+import time
 
 TIMEOUT = 300
+
+# hosted 模式单独设一个更短的上限。联网搜索本来就慢，但如果问题本身有问题
+# （比如误把 "3" 当成问题发过去），干等好几分钟毫无意义。
+# 注意最坏耗时 = HOSTED_TIMEOUT × attempts，两个值都要克制。
+HOSTED_TIMEOUT = 150
 
 # 两个 CLI 后端共用。Claude Code 和 Codex 自带一堆内置工具（Bash、Read…）。
 # 我们只想把它们当「纯文本补全」用，所以必须显式禁止 ——
@@ -179,7 +185,7 @@ class HostedInterrupted(Exception):
     """
 
 
-def complete_hosted(prompt, max_turns=30, attempts=3):
+def complete_hosted(prompt, max_turns=30, attempts=2, on_progress=None):
     """Let the PROVIDER search the web and answer. No loop of our own.
 
     Returns (answer_text, turns) where `turns` is how many internal steps the
@@ -198,20 +204,41 @@ def complete_hosted(prompt, max_turns=30, attempts=3):
     # 实测这个问题通常 4 轮就够，但偶尔会多搜几次。
     # max_turns 给足余量（没用到的轮次不花钱），再加重试兜底。
     last = ""
-    for _ in range(attempts):
-        proc = subprocess.run(
+    for attempt in range(attempts):
+        # 用 Popen 而不是 subprocess.run，是为了在等待期间能打印进度。
+        # 联网搜索经常要一两分钟，屏幕上什么都不动的话跟卡死没区别。
+        proc = subprocess.Popen(
             ["claude", "-p", prompt,
              # 和 _complete_claude 唯一实质的区别：那边禁止所有内置工具，
              # 这边恰好放行一个 —— WebSearch。
              "--allowedTools", "WebSearch",
              "--max-turns", str(max_turns),
              "--output-format", "json"],
-            capture_output=True, text=True, timeout=TIMEOUT,
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
         )
+
+        start = time.time()
+        timed_out = False
+        while proc.poll() is None:
+            waited = int(time.time() - start)
+            if waited > HOSTED_TIMEOUT:
+                proc.kill()
+                timed_out = True
+                break
+            if on_progress is not None:
+                on_progress(waited, attempt + 1, attempts)
+            time.sleep(1)
+
+        stdout, stderr = proc.communicate()
+
+        if timed_out:
+            last = f"超过 {HOSTED_TIMEOUT} 秒还没跑完，已强制结束"
+            continue
+
         try:
-            payload = json.loads(proc.stdout)
+            payload = json.loads(stdout)
         except json.JSONDecodeError:
-            last = f"CLI 输出不是 JSON（rc={proc.returncode}）：{proc.stderr[:200]}"
+            last = f"CLI 输出不是 JSON（rc={proc.returncode}）：{stderr[:200]}"
             continue
 
         if payload.get("result"):

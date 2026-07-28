@@ -93,6 +93,9 @@ calls 是数组，互不依赖的工具可以一次全放进去。""",
             "珠穆朗玛峰和乔戈里峰差多少米？",
             "长江和黄河哪条更长？长多少公里？",
         ],
+        "picked": "  ✓ 已选第 {n} 个：{task}",
+        "number_out_of_range": "  （只有 {n} 个例子，就按你输的内容当问题了）",
+        "interrupted": "\n  已中断（Ctrl+C）。想换个问题重跑就再执行一次。",
         "need_task": "没有问题就没法查。把问题写在模式后面，或者不带问题运行进入交互输入。",
         "no_tty": "检测到非交互环境（比如管道/脚本里跑），请把问题直接写在命令行：\n    python3 agent.py {mode} \"你的问题\"",
         "rerun_hint": "想用同一个问题跑别的模式做对比，复制这行改模式名即可：",
@@ -135,6 +138,8 @@ calls 是数组，互不依赖的工具可以一次全放进去。""",
         "hosted_note": """  我们只做了一件事：把问题原样发出去，并允许它使用自带的 WebSearch。
   没有循环、没有工具定义、没有上下文拼接 —— 那些都在厂商那边跑。""",
         "hosted_waiting": "  正在等厂商跑完整个流程…",
+        "waited": "已等 {sec} 秒…（联网搜索通常 30~90 秒）",
+        "retrying": "  [第 {n}/{total} 次尝试]",
         "hosted_turns": "  厂商内部跑了 {n} 轮（这几乎是它唯一愿意告诉我们的事）",
         "hosted_blind": """  注意你看不到的东西：它搜了什么关键词？看了哪些网页？
   中间读到过什么？失败重试过吗？—— 全都没有。只有最后这段文字。""",
@@ -233,6 +238,9 @@ or, when you have the complete answer:
             "How much taller is Everest than K2?",
             "Which river is longer, the Nile or the Amazon, and by how much?",
         ],
+        "picked": "  ok, picked #{n}: {task}",
+        "number_out_of_range": "  (only {n} examples, treating your input as the question)",
+        "interrupted": "\n  Interrupted (Ctrl+C). Run it again to try another question.",
         "need_task": "No question, nothing to research. Put it after the mode, or run without one to be prompted.",
         "no_tty": "Non-interactive environment detected (piped or scripted). Put the question on the command line:\n    python3 agent.py {mode} \"your question\"",
         "rerun_hint": "To compare another mode on the SAME question, copy this and change the mode name:",
@@ -276,6 +284,8 @@ Any ONE of these will do. Install it, come back to this folder, run again:
   No loop, no tool definitions, no context assembly -- all of that runs on
   the provider's side.""",
         "hosted_waiting": "  waiting for the provider to run the whole thing...",
+        "waited": "waited {sec}s... (web search usually takes 30-90s)",
+        "retrying": "  [attempt {n}/{total}]",
         "hosted_turns": "  the provider took {n} internal turns (about the only thing it tells us)",
         "hosted_blind": """  Notice what you CANNOT see: which queries did it run? which pages did it
   open? what did it read? did anything fail and get retried? -- none of it.
@@ -568,7 +578,17 @@ def run_hosted(task, verbose=True):
 
     start_time = time.time()
     try:
-        answer, turns = complete_hosted(task + t("hosted_prompt_suffix"))
+        def show_progress(waited, attempt, total):
+            # \r 回到行首原地刷新，不会一行行往下滚屏。
+            suffix = ""
+            if total > 1 and attempt > 1:
+                suffix = t("retrying", n=attempt, total=total)
+            print("\r  " + t("waited", sec=waited) + suffix + "   ",
+                  end="", flush=True)
+
+        answer, turns = complete_hosted(task + t("hosted_prompt_suffix"),
+                                        on_progress=show_progress)
+        print("")
     except HostedNotAvailable as error:
         if verbose:
             print("")
@@ -737,7 +757,7 @@ def ask_for_task(mode):
 
     answer = input(t("ask_task")).strip()
     if answer:
-        return answer
+        return _resolve_choice(answer)
 
     # 直接回车：列几个例子，再问一次。
     print("")
@@ -752,6 +772,27 @@ def ask_for_task(mode):
         print("")
         print(t("need_task"))
         sys.exit(1)
+    return _resolve_choice(answer)
+
+
+def _resolve_choice(answer):
+    """如果用户输的是个编号（比如 "3"），就取对应的例子。
+
+    例子是带编号列出来的，人自然会想「输 3 选第三个」。
+    不支持的话，"3" 会被原样当成问题发给模型 —— 这是实测踩到的坑。
+    """
+    if not answer.isdigit():
+        return answer
+
+    examples = t("task_examples")
+    index = int(answer)
+    if 1 <= index <= len(examples):
+        chosen = examples[index - 1]
+        print(t("picked", n=index, task=chosen))
+        return chosen
+
+    # 是数字但超出范围 —— 也可能他真想问一个纯数字，提示一下后照用。
+    print(t("number_out_of_range", n=len(examples)))
     return answer
 
 
@@ -800,6 +841,17 @@ def print_summary(results):
         else:
             ending = str(r["answer"]).replace("\n", " ")[:60]
         print(t("summary_result") + ending)
+
+
+def _quiet_ctrl_c(exc_type, exc_value, tb):
+    """Ctrl+C 是正常操作，不是崩溃 —— 不要甩一屏 traceback 吓人。"""
+    if exc_type is KeyboardInterrupt:
+        print(t("interrupted"))
+        sys.exit(130)
+    sys.__excepthook__(exc_type, exc_value, tb)
+
+
+sys.excepthook = _quiet_ctrl_c
 
 
 if __name__ == "__main__":

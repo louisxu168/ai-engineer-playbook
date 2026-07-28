@@ -88,6 +88,9 @@ TEXT = {
             "买 2 个 monitor 和 1 个 wireless mouse，一共多少美元？",
             "1 个 monitor 折算成日元是多少？",
         ],
+        "picked": "  ✓ 已选第 {n} 个：{task}",
+        "number_out_of_range": "  （只有 {n} 个例子，就按你输的内容当问题了）",
+        "interrupted": "\n  已中断（Ctrl+C）。想换个问题重跑就再执行一次。",
         "need_task": "没有任务就没法跑。把任务写在模式后面，或者不带任务运行进入交互输入。",
         "no_tty": "检测到非交互环境（比如管道/脚本里跑），请把任务直接写在命令行：\n    python3 agent.py {mode} \"你的任务\"",
         "rerun_hint": "想用同一个任务跑别的模式做对比，复制这行改模式名即可：",
@@ -206,6 +209,9 @@ Note that `calls` is an array — you may put several tool calls in it at once:
             "Buy 2 monitors and 1 wireless mouse - how much in USD?",
             "What is 1 monitor in JPY?",
         ],
+        "picked": "  ok, picked #{n}: {task}",
+        "number_out_of_range": "  (only {n} examples, treating your input as the question)",
+        "interrupted": "\n  Interrupted (Ctrl+C). Run it again to try another question.",
         "need_task": "No task, nothing to run. Put the task after the mode, or run without one to be prompted.",
         "no_tty": "Non-interactive environment detected (piped or scripted). Put the task on the command line:\n    python3 agent.py {mode} \"your task\"",
         "rerun_hint": "To compare another mode on the SAME task, copy this and change the mode name:",
@@ -737,7 +743,7 @@ def ask_for_task(mode):
 
     answer = input(t("ask_task")).strip()
     if answer:
-        return answer
+        return _resolve_choice(answer)
 
     # 直接回车：列几个例子，再问一次。
     print("")
@@ -752,6 +758,27 @@ def ask_for_task(mode):
         print("")
         print(t("need_task"))
         sys.exit(1)
+    return _resolve_choice(answer)
+
+
+def _resolve_choice(answer):
+    """如果用户输的是个编号（比如 "3"），就取对应的例子。
+
+    例子是带编号列出来的，人自然会想「输 3 选第三个」。
+    不支持的话，"3" 会被原样当成问题发给模型 —— 这是实测踩到的坑。
+    """
+    if not answer.isdigit():
+        return answer
+
+    examples = t("task_examples")
+    index = int(answer)
+    if 1 <= index <= len(examples):
+        chosen = examples[index - 1]
+        print(t("picked", n=index, task=chosen))
+        return chosen
+
+    # 是数字但超出范围 —— 也可能他真想问一个纯数字，提示一下后照用。
+    print(t("number_out_of_range", n=len(examples)))
     return answer
 
 
@@ -792,6 +819,17 @@ def print_summary(results):
         print(t("summary_mode") + r["mode"])
         print(t("summary_stats", r=r["iterations"], t=r["tool_calls"]))
         print(t("summary_result") + ending)
+
+
+def _quiet_ctrl_c(exc_type, exc_value, tb):
+    """Ctrl+C 是正常操作，不是崩溃 —— 不要甩一屏 traceback 吓人。"""
+    if exc_type is KeyboardInterrupt:
+        print(t("interrupted"))
+        sys.exit(130)
+    sys.__excepthook__(exc_type, exc_value, tb)
+
+
+sys.excepthook = _quiet_ctrl_c
 
 
 if __name__ == "__main__":

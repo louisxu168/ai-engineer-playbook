@@ -1,0 +1,13 @@
+# ⚠️ 本仓库【唯一】需要重量级依赖的实验。
+#
+# 建议单独建一个 venv，别污染现有环境：
+#   uv venv .venv-attn --python 3.12
+#   uv pip install --python .venv-attn/bin/python torch transformers
+#   .venv-attn/bin/python agent.py all
+#
+# 首次运行会下载 Qwen3-0.6B 权重（约 1.2GB）；torch+transformers 约 1.3GB。
+# 合计约 2.5GB。删干净：rm -rf .venv-attn ~/.cache/huggingface
+#
+# 不装完全没关系 —— 本章其他 8 个实验一个都不需要它。
+torch
+transformers

@@ -18,7 +18,7 @@ reach the model.
 | [2-1 Context compaction](2-1-compaction/) | When it no longer fits: do nothing / truncate / compact | All three cost something; you only choose where to pay. Compaction quality ≈ compaction-prompt quality | ✅ |
 | [2-2 Prompt injection](2-2-prompt-injection/) | What happens when a tool result carries instructions | Keyword filtering isn't a defence; a few sentences are | ✅ |
 | [2-3 Log redaction](2-3-log-redaction/) | What should never enter the context | Redaction must strip identity without stripping sameness | ✅ |
-| [2-4 Bad context patterns](2-4-bad-context-patterns/) | Breaking the cache vs breaking capability | The two kinds of damage cost very differently; sliding windows do both | ✅ |
+| [2-4 Bad context patterns](2-4-bad-context-patterns/) | Breaking the cache vs breaking capability | The two kinds cost very differently; **measuring cache requires interleaving** — sequential runs confound the variables | ✅ |
 | [2-5 Prompt ablation](2-5-prompt-ablation/) | Tone / structure / tool descriptions - which does the work | The book's "scrambling costs 30%" didn't reproduce; only the tool-description dimension still holds | ✅ |
 | [2-6 Agent status bar](2-6-status-bar/) | Let it glance instead of recounting | The book's claim reproduces; but TODO wins - because it supplies an alternative action | ✅ |
 | [2-7 Progressive disclosure](2-7-agent-skills/) | Loading Agent Skills on demand | Same shape as retrieval, but the model does the filtering - which repairs lab 4-2's failure | ✅ |
@@ -79,7 +79,7 @@ project table has 8 rows with one of them numbered "2-2, 2-7".
 | 2-1 Context compaction | **2-9** | context-compression | Different task and implementation; adds a quantified size visualisation |
 | 2-2 Prompt injection | **2-5** | prompt-injection | Adds an automatic attack-success judge, so defence effectiveness is measured rather than asserted |
 | 2-3 Log redaction | **3-3** | log-sanitization | The book numbers it under chapter 3; adds the three-way raw / redacted / tokenized contrast |
-| 2-4 Bad context patterns | **2-3** | kv-cache | History is hardcoded; five strategies process the same input, measuring *cache* damage and *capability* damage separately |
+| 2-4 Bad context patterns | **2-3** | kv-cache | All six of the book's modes (its 5 anti-patterns including **dynamic user profile**, plus the correct baseline); history is hardcoded. The book reads `cached_tokens` from Kimi; locally only prefill *timing* is available, so an interleaved `cache` mode was added |
 | 2-5 Prompt ablation | **2-4** | prompt-engineering | Not τ-bench — a support flow whose call *order* is mechanically checkable; a `--weak` flag runs the same suite on a local 0.6B to locate where the advice applies |
 | 2-6 Agent status bar | **2-7, 2-8** | attention_visualization (2-7 uses it for the status-bar contrast), system-hint (2-8) | Uses the book's Xfinity three-phone-call scenario but with a **mechanical verdict** (does it place a 4th call); n=40 on a 0.6B confirms the book's "the small model in group A violates often" |
 | 2-7 Progressive disclosure | **2-6** | agent-skills-ppt | Doesn't generate a real .pptx (that needs python-pptx) — it isolates **the disclosure mechanism itself**: verdict = does the answer contain the parameter format that exists only in layer 3, plus context token count |

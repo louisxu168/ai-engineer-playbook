@@ -4,15 +4,19 @@
 
 > **What you'll learn**
 >
-> 1. **The KV cache effect, reproduced cleanly**: a stable prefix is **19× faster** on
+> 1. **The KV cache effect, reproduced cleanly**: a stable prefix is **23× faster** on
 >    the second call; a timestamp at the start of the system prompt **never hits the cache**
 > 2. The five anti-patterns split into **two kinds**: one only burns money, the other
 >    **hands you a wrong answer**
-> 3. Sliding windows are the only one that does **both** — making them the most expensive
+> 3. "Put the dynamic bit a little later" is a **half-right** intuition — and half-right
+>    is the dangerous kind
+> 4. A methodology lesson: **running modes sequentially confounds "which mode" with "which
+>    position in the sequence"** — measuring cache requires **interleaving**
+>    (`agent.py cache`). I got caught by this twice.
 > 4. A methodology detail: **why lab 2-0 failed to reproduce this and this lab succeeds**
 >    (the difference is entirely in the control group)
 >
-> **How you'll learn it**: the history is a **hard-coded** 12-message transcript; all five
+> **How you'll learn it**: the history is a **hard-coded** 12-message transcript; all six
 > strategies process **identical** input; the correct answer is hard-coded, so scoring is
 > mechanical. Two calls per strategy — the whole thing runs in under a minute.
 >
@@ -47,7 +51,7 @@ assistant: OK, all five sensors have been read.
 user:      Got it, hold on to those.
 ```
 
-Five strategies process **the same history** and get **the same question**:
+Six strategies (1 right + 5 wrong) process **the same history** and get **the same question**:
 
 > "What reading did you get from sensor 1 earlier?"
 
@@ -60,15 +64,26 @@ Five strategies process **the same history** and get **the same question**:
 
 ---
 
-## The five modes
+## The six modes = 1 right + 5 wrong
 
 | Mode | What it does wrong | Expected damage |
 |---|---|---|
 | `good` | nothing (baseline) | — |
 | `dynamic_prompt` | a changing timestamp at the **start** of the system prompt | cache |
+| `dynamic_profile` | changing credits at the **end** of the system prompt (**one character differs**) | cache ★ |
 | `shuffled_tools` | tool definitions reordered every request | cache |
-| `sliding_window` | only the last 6 messages kept | cache **+ capability** |
+| `sliding_window` | only the last 6 messages kept | capability |
 | `flattened` | everything flattened into one `USER: … ASSISTANT: …` blob | capability |
+
+> ★ `dynamic_profile` is the one worth predicting first: **only one character changes**,
+> and it sits at the **end** of the system prompt — both "mitigations" applied. Do you
+> think the cache still hits?
+>
+> **I predicted wrong.** Make your prediction, measure it yourself, then read SOLUTION:
+>
+> ```bash
+> python3 agent.py cache      # interleaved - the only valid way to measure cache here
+> ```
 
 ---
 
@@ -80,16 +95,16 @@ python3 agent.py good
 ```
 
 ```
-  context: 14 messages -> 409 input tokens
-  run 1: prefill 148.9 ms
-  run 2: prefill   7.9 ms   <- 19x faster
+  context: 14 messages -> 405 input tokens
+  run 1: prefill 234.2 ms
+  run 2: prefill  10.1 ms   <- 23x faster
   [answer] 37
   ok correct (37)
 ```
 
 ### 💡 What you learn
 
-**19× faster on the second call, because the prefix didn't change and the KV can be reused.**
+**23× faster on the second call, because the prefix didn't change and the KV can be reused.**
 
 That's the **concrete value** of "keep your prefix stable" — not an abstract best practice,
 but 140 milliseconds saved on every request.
@@ -117,8 +132,8 @@ brand new** — so the cache **never** hits once.
 And you pay it **forever**:
 
 ```
-good            from run 2 on:   7.9 ms
-dynamic_prompt  every single run: ~176 ms     <- 22x more, permanently
+good            from run 2 on:    10.1 ms
+dynamic_prompt  every single run: ~184 ms     <- 18x more, permanently
 ```
 
 > **One innocuous-looking line made the whole pipeline's prefill an order of magnitude
@@ -154,12 +169,13 @@ Can it still answer what sensor 1 read?
 
 > **That's the real danger of sliding windows: they don't error, they fabricate.**
 >
-> And this pattern belongs to **both** categories:
-> - the window position keeps moving → **the prefix changes → the cache dies too**
-> - early information is gone → **the answer is wrong**
->
-> **It's the only one of the five that does both** — and it happens to be the most
-> popular, because "saves tokens" sounds so reasonable.
+> And it happens to be the most popular pattern, because "saves tokens" sounds so
+> reasonable.
+
+⚠️ An honest boundary: the book says sliding windows **also** break the cache (slide the
+window and the prefix changes). **This lab cannot measure that side** — both requests use
+the same window position, so you will see the cache **hit**. To verify that half, see
+exercise 5 in SOLUTION.
 
 ---
 
@@ -167,6 +183,14 @@ Can it still answer what sensor 1 read?
 
 ```bash
 python3 agent.py all
+```
+
+⚠️ Note: `all` runs modes **sequentially**, which makes it **the wrong instrument for
+measuring cache** (the local backend's state drifts over time, confounding "which mode"
+with "which position in the sequence"). For cache, use:
+
+```bash
+python3 agent.py cache      # one request per mode per round, flattening time out
 ```
 
 **How to read it: split into two categories.**

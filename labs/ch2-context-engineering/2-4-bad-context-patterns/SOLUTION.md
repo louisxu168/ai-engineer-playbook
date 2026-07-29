@@ -1,5 +1,7 @@
 # Lab 2-4 answers: five context-management anti-patterns
 
+> Six modes = 1 right (`good`) + 5 wrong.
+
 **English** · [简体中文](SOLUTION.zh-CN.md)
 
 > ⚠️ Try it first.
@@ -12,21 +14,74 @@ Apple M3 / Ollama 0.32.5 / qwen3:0.6b, 2026-07-29
 
 | Mode | Input tokens | Prefill run 1 → run 2 | Cache hit | Answer |
 |---|---|---|---|---|
-| `good` | 409 | 148.9 → **7.9 ms** | ✅ **19× faster** | ✓ 37 |
-| `dynamic_prompt` | 440 | 181.2 → **176.1 ms** | ❌ **never hits** | ✓ 37 |
-| `shuffled_tools` | 409 | 33.2 → 32.6 ms | ❌ unchanged | ✓ 37 |
-| `sliding_window` | 283 | 66.0 → 7.4 ms | ✅ | **✗ 21** |
-| `flattened` | 409 | 43.0 → 7.6 ms | ✅ | ✓ 37 |
+| `good` | 405 | 234.2 → **10.1 ms** | ✅ **23× faster** | ✓ 37 |
+| `dynamic_prompt` | 436 | 213.2 → **184.5 ms** | ❌ **never hits** | ✓ 37 |
+| `dynamic_profile` | 429 | 134.0 → 121.6 ms | ⚠️ **see section 2.5** | ✓ 37 |
+| `shuffled_tools` | 405 | 210.9 → 180.0 ms | ❌ unchanged | ✓ 37 |
+| `sliding_window` | 279 | 67.5 → 8.0 ms | ✅ | **✗ 21** |
+| `flattened` | 404 | 121.9 → 8.0 ms | ✅ | ✓ 37 |
 
-Second run: `good` 120.6 → 7.7; `dynamic_prompt` 191.7 → 169.7; `sliding_window` still 21.
+Second run (same machine, immediately after): `good` 147.2 → 7.6;
+`dynamic_prompt` 182.9 → 171.9; **`dynamic_profile` 120.6 → 120.3**;
+`sliding_window` still 21.
+
+### ⚠️ But that table is the wrong instrument for measuring cache
+
+It runs modes **sequentially**: all of `good`, then all of `dynamic_prompt`, then
+`dynamic_profile`… Meanwhile the local backend's state drifts over time (model warm-up,
+cache slots, Metal state). So "which mode" and "which position in the sequence" are
+**confounded**.
+
+My first write-up drew its conclusions from that table. Then I found that **the same
+configuration measures 180 ms on one pass and 11 ms on another**, depending only on where
+it sat in the sequence.
+
+So I added a mode that sends **one request per mode per round**, flattening time out:
+
+```bash
+python3 agent.py cache
+```
+
+**Every cache conclusion below comes from that interleaved table, not the sequential one.**
+
+### Interleaved measurement (4 independent runs × 8 rounds = 32 rounds)
+
+```
+  round             good      dynamic_prompt   dynamic_profile
+  ----------------------------------------------------------------
+  1               39.1 ms         196.9 ms          10.2 ms
+  2               12.4 ms         210.6 ms          17.2 ms
+  3               18.1 ms         188.5 ms         128.0 ms
+  4               14.3 ms         179.8 ms         123.4 ms
+  5               16.2 ms         186.2 ms         134.1 ms
+  6                7.7 ms         194.6 ms         126.3 ms
+  7               13.2 ms         193.2 ms         133.3 ms
+  8               12.6 ms         201.6 ms         130.6 ms
+```
+
+Across all 32 rounds:
+
+| Mode | Slow rounds (>60 ms) | Range |
+|---|---|---|
+| `good` | **2 / 32** | 7.7 – 194.3 ms |
+| `dynamic_prompt` | **32 / 32** | 179.8 – 218.2 ms |
+| `dynamic_profile` | **22 / 32** | 10.1 – 223.9 ms (**bimodal**) |
+
+> `good`'s two slow rounds are both **rounds 1–2 of the fourth run** — the model had just
+> been reloaded, so that's pure cold start. It snaps back to 8 ms from round 3 and stays.
+> **That is cold-vs-warm, not a prefix effect.**
+>
+> `dynamic_profile`'s bimodal split varies between runs (2/8, 6/8, 6/8, 8/8).
+> **The direction is stable; the ratio is not** — which is why the finding is "bimodal"
+> rather than a "hits X% of the time" number. That number wouldn't reproduce.
 
 ---
 
 ## 2. The cache effect: clean, large, reproducible ★
 
 ```
-good            run 1 148.9 ms  ->  run 2   7.9 ms     19x faster
-dynamic_prompt  run 1 181.2 ms  ->  run 2 176.1 ms     no improvement at all
+good            run 1 234.2 ms  ->  run 2  10.1 ms     23x faster
+dynamic_prompt  run 1 213.2 ms  ->  run 2 184.5 ms     no improvement at all
 ```
 
 `dynamic_prompt`'s only change is one line at the **very front** of the system prompt:
@@ -40,8 +95,8 @@ Current time: 2026-07-29 10:30:45.123456
 
 And the cost is **permanent**:
 
-> A stable prefix costs **7.9 ms** per call; a dynamic one costs **~176 ms** per call.
-> **22× more, on every single request.**
+> A stable prefix costs **10.1 ms** per call; a dynamic one costs **~184 ms** per call.
+> **18× more, on every single request.**
 
 That's the measured version of the book's line about "one innocuous line of code making a
 pipeline an order of magnitude slower".
@@ -56,6 +111,88 @@ V system: "You are an assistant..."                      <- never changes
 
 **The more dynamic something is, the later it belongs** — the cache matches by prefix, so
 changing the front invalidates everything behind it.
+
+---
+
+## 2.5 `dynamic_profile`: I predicted wrong, and the wrongness is the lesson ★★★
+
+**The only prediction I got wrong in this lab, and the section most worth reading.**
+
+It differs from `dynamic_prompt` in exactly two ways — both in the "I was clever about it"
+direction:
+
+| | `dynamic_prompt` | `dynamic_profile` |
+|---|---|---|
+| What changes | a microsecond timestamp | credits `4831` → `4830` |
+| How much changes | a long digit string | **one character** |
+| Where it sits | **start** of the system prompt (token 0) | **end** of the system prompt (after the tools) |
+
+### My prediction
+
+Straight from the textbook definition of prefix caching: compare from the first token
+until something differs, and **once it differs, everything after is discarded**.
+`dynamic_profile`'s change point is ~200 tokens in, with all 12 history messages behind
+it. So I predicted:
+
+> **Just as slow as `dynamic_prompt`. Changing one character is no different from
+> changing a hundred.**
+
+I had already written that sentence into this file.
+
+### Measured
+
+```
+dynamic_prompt    slow in 32 / 32 rounds     179.8 – 218.2 ms
+dynamic_profile   slow in 22 / 32 rounds     bimodal: either ~10 ms or ~125 ms
+```
+
+**Wrong.** `dynamic_profile` was **completely free** in 10 rounds (as fast as `good`), and
+even in its slow mode it costs ~125 ms — **clearly cheaper than `dynamic_prompt`'s ~190 ms**.
+
+### Why
+
+Two things my model didn't contain:
+
+**① llama.cpp is not doing naive prefix matching.** It can **shift the KV of the suffix
+back into place and reuse it** after a *short* divergence (cache reuse / position shifting).
+One character changed with hundreds of unchanged tokens behind it is precisely the case it
+can rescue. `dynamic_prompt` is unrescuable — a microsecond timestamp changes length and
+content, and the divergence starts at token 0.
+
+**② And when it can't rescue, the cost is proportional.** ~125 ms vs ~190 ms ≈ 0.66, while
+the ratio of "tokens after the change point" is about 230/436 ≈ 0.53 — **the same
+ballpark**. The later the change point, the less there is to recompute.
+
+### So is the book wrong? No
+
+> The book is describing **cloud prompt caches** (Anthropic / OpenAI / Moonshot). That
+> layer *is* naive prefix matching: one byte differs and everything after is recomputed.
+> There is no cache-reuse rescue there.
+>
+> Therefore:
+> - **For cloud APIs**: the book is right — never put a dynamic user profile in the prefix.
+> - **For local llama.cpp**: more forgiving, but **unreliable** (bimodal; you don't know
+>   which round drops into the slow mode).
+>
+> **Don't mistake the local forgiveness for permission to write it this way.**
+
+### The rule actually worth keeping
+
+```
+❌ system: "…tool defs…\n[credits: 4831]"    ← still in the prefix
+✅ system: "…tool defs…"                      ← never changes
+   …full history…
+   user:   "[credits: 4831] please look up…"  ← in the LAST user message
+```
+
+**"Later" has a threshold: either it's at the very end of the whole context, or it might
+as well not be.** The end of the system prompt is not the end of the context — your entire
+conversation history sits in between.
+
+> I originally missed this mode entirely, assuming it was the same lesson as the dynamic
+> timestamp. **Running it showed it wasn't** — and my first written explanation of *why*
+> was also wrong. Same flaw both times: **substituting "it should work like this" for
+> "here is what it measured."**
 
 ---
 
@@ -83,12 +220,34 @@ invalidation while each variant was hitting **its own** cache slot.
 > practice" at that point, I'd have been wrong — and it would have sounded like independent
 > thinking.
 >
-> But don't overcorrect: **the start-vs-end position effect from 2-0 still hasn't been
-> reproduced.** Both errors are worth guarding against: **credulity and premature dismissal.**
+> But don't overcorrect: both errors are worth guarding against — **credulity and
+> premature dismissal.**
+
+### ★ Postscript: lab 2-0's "position effect" now reproduces
+
+Lab 2-0 left one question open: **does it matter whether you change the start or the end of
+the prefix?** I couldn't measure it there.
+
+This lab's interleaved table **answers it**:
+
+```
+change at token 0     (dynamic_prompt)    slow in 32/32 rounds, ~190 ms
+change at ~token 200  (dynamic_profile)   slow in 22/32, and only ~125 ms when slow
+```
+
+**Position matters far more than the size of the change.** One character at the start →
+everything dies. One character in the middle → often free, and at worst you only pay for
+what follows it.
+
+> 2-0 couldn't measure it because it **wasn't interleaved**: two prefixes sent alternately,
+> each hitting its own cache slot. Switch to interleaved measurement and the effect appears
+> immediately.
+>
+> **Same mistake, twice in this repo, on the same backend.**
 
 ---
 
-## 4. Sliding window: the only one that does both kinds of damage
+## 4. Sliding window: it fabricates
 
 ```
   ! the window dropped the first 6 messages
@@ -100,18 +259,35 @@ invalidation while each variant was hitting **its own** cache slot.
 it *could* still see. It grabbed the nearest available number and bluffed.
 
 > **That's the real danger: sliding windows don't error, they fabricate.**
->
-> And it's **both** categories at once:
-> - the window keeps moving → **prefix changes → cache dies**
-> - early tool results vanish → **wrong answer**
->
-> **The only one of the five that does both** — and it's the most popular, because
-> "saves tokens" sounds so reasonable.
->
-> The book puts it more strongly: agents with sliding windows "often fall into loops,
-> repeatedly making the same tool calls, because they forgot the result they already had."
-> This lab runs a single turn so you don't see the loop — but you see the information is
-> genuinely gone.
+
+### ⚠️ But look at the table above: `sliding_window` **hits** the cache here
+
+```
+sliding_window   run 1 67.5 ms → run 2 8.0 ms      ✅ hit
+```
+
+That appears to contradict "sliding windows break the cache." It doesn't — **this lab
+cannot measure that side**:
+
+> Each mode sends only 2 requests, and **both use the same window position**, so the
+> prefix is identical and of course it hits.
+> The book's claim is about the prefix changing **as the conversation advances and the
+> window slides along** — which needs a multi-turn agent, whereas this lab deliberately
+> hardcodes the history so all six modes face identical input.
+> **Those two design goals conflict, and I chose the latter.**
+
+So the honest reading of that row is:
+
+- **This lab proves**: sliding windows **lose information and produce wrong answers**
+  (type B) — strong and reproducible
+- **This lab does not prove**: sliding windows break the cache (type A) — the mechanism
+  holds, but it takes multiple turns to become visible
+- **Exercise 5** is where you supply the missing half
+
+> This section used to say "the only one of the five that does both."
+> **The table higher up the same page contradicted that sentence**, and I didn't notice.
+> Data and conclusion sitting in the same document and disagreeing is the easiest kind
+> of error to slide past.
 
 ---
 
@@ -181,6 +357,16 @@ Summarise dropped tool results into one **fixed** message at the front of the wi
 > - sliding window: drops content, **prefix keeps changing** (the window slides)
 > - compaction: drops content, **prefix can stay stable** (the summary is written once)
 
+### Exercise 5 ⭐⭐⭐ Make the sliding window actually break the cache
+
+Raise `REPEATS` and **append a new turn to the history before each request**, so the
+window really slides. Then check whether prefill still gets faster.
+
+> Expected: once the window starts sliding, the prefix changes every time → **the cache
+> stops hitting**, and sliding windows really do land in both type A and type B.
+>
+> **Doing this exercise is how you verify the half of the claim I could not.**
+
 ### Exercise 4 ⭐⭐⭐ Make `flattened` actually fail
 
 You need a task where **role boundaries matter**. Prompt injection is the clearest case:
@@ -207,7 +393,7 @@ Chapter 2 now has a complete causal chain:
 
 ```
 2-0  measures: longer input -> pricier prefill (2050 tokens = ~1s cold)
-2-4  measures: broken prefix -> cache never hits -> 22x more, permanently
+2-4  measures: broken prefix -> cache never hits -> 18x more, permanently
       | so how do you shorten the context WITHOUT breaking the prefix?
 2-1  Context compaction -- the only approach that does both
 2-2  but shorter isn't safer (injection)

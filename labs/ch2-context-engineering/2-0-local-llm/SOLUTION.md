@@ -342,9 +342,27 @@ The most promising directions, in order:
 > So the order is: **suspect the method before the conclusion.** Had I written
 > "this claim doesn't hold in practice" at that point, I would have been **wrong**.
 >
-> But don't overcorrect either — **the position effect still hasn't been reproduced
-> by me**, and it circulates just as widely. **Both errors are worth guarding
-> against: credulity, and premature dismissal.**
+> But don't overcorrect either — **both errors are worth guarding against:
+> credulity, and premature dismissal.**
+
+> ### ★ Follow-up: the position effect does reproduce, in lab 2-4
+>
+> When this section was written I had not managed to reproduce "change the start vs
+> change the end." [Lab 2-4](../2-4-bad-context-patterns/SOLUTION.md) later did, using
+> **interleaved measurement** (one request per prefix variant per round, flattening
+> time out as a variable):
+>
+> ```
+> change at token 0        slow in 32/32 rounds, ~190 ms
+> change at ~token 200     slow in 22/32, and only ~125 ms when slow
+> ```
+>
+> **The reason it failed here is precisely the missing interleaving**: two prefixes sent
+> alternately, each hitting its own cache slot. So this section's "couldn't reproduce"
+> was **again a method problem, not an effect problem** — the same flaw, twice, on the
+> same backend.
+>
+> To verify yourself: `cd ../2-4-bad-context-patterns && python3 agent.py cache`
 
 ### Exercise 5 ⭐⭐⭐ Ollama's native tools parameter
 

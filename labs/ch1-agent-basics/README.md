@@ -69,9 +69,12 @@ This chapter parallels chapter 1 of *AI Agents in Depth* (深入理解 AI Agent)
 **The code is an independent rewrite** — same themes, different implementation
 and angle:
 
-| This repo | Book's version | Main differences |
-|---|---|---|
-| 1-1 Context ablation | Experiment 1-1 | Different task and toolset; zero API key; adds parallel tool calls |
-| 1-2 Who runs the tool | Experiment 1-2 (Kimi web search) | Uses Claude Code's built-in WebSearch as the hosted arm and the Wikipedia API as the DIY arm; adds three tool-degradation modes |
+| This repo | **Book's number** | Book's project | Main differences |
+|---|---|---|---|
+| 1-1 Context ablation | **1-1** | context | Different task and toolset; zero API key; adds parallel tool calls |
+| 1-2 Who runs the tool | **1-2** | web-search-agent | Claude Code's built-in WebSearch as the hosted arm, the Wikipedia API as the DIY arm; adds three tool-degradation modes |
+| 1-3 Code as a tool | **1-3** | search-codegen | A local `run_python` sandbox plus Wikipedia; reframed from accuracy to reproducibility |
+
+(Chapter 1 is the **only** chapter whose numbering happens to match the book's.)
 
 ← [back to the index](../../README.md)

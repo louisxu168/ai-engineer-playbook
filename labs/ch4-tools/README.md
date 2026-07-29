@@ -71,9 +71,10 @@ This parallels chapter 4 of *AI Agents in Depth* (perception / execution /
 collaboration tools, active tool discovery and selection, async agents).
 **The code is an independent rewrite**, and the selection is deliberate:
 
-| This repo | Book's version | Notes |
-|---|---|---|
-| 4-1 Tool design | execution-tools | A 2×2 ablation rather than a tool catalogue; the verdict is mechanical (compare against the one correct call), so "did documentation help" is measured rather than argued |
+| This repo | **Book's number** | Book's project | Notes |
+|---|---|---|---|
+| 4-1 Tool design | **2-4** (in chapter 2) | prompt-engineering | That project quantifies how **tool descriptions** and similar factors affect task completion - much closer to this lab than chapter 4's execution-tools (I previously mislabelled it; corrected). Here it's a 2×2 ablation with a mechanical verdict |
+| 4-2 Too many tools | **4-6** | active-tool-discovery | The book contrasts injecting 120+ tool schemas against on-demand retrieval; this lab adds cost quantification and measures retrieval's recall failure |
 
 **Deliberately not attempted (yet)**: `agent-with-event-trigger` and `async-agent`
 need a running service and a scheduler, which sits awkwardly with this repo's

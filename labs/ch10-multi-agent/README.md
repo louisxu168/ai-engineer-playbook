@@ -58,8 +58,8 @@ No API key needed.
 This parallels chapter 10 of *AI Agents in Depth*.
 **The code is an independent rewrite**, and the angle is deliberate:
 
-| This repo | Book's version | Notes |
-|---|---|---|
-| 10-1 One agent vs many | multi-agent collaboration | Framed as a measurement rather than a demonstration: every pattern is compared against the single-agent baseline on a mechanically scored task |
+| This repo | **Book's number** | Book's project | Notes |
+|---|---|---|---|
+| 10-1 One agent vs many | **10-6** | parallel-web-research | The book demonstrates N homogeneous sub-agents searching in parallel; this lab is a **measurement** rather than a demonstration - every pattern is compared against the single-agent baseline on a mechanically scored task. (The book's 10-1 is staged-system-prompt, unrelated) |
 
 ← [back to the index](../../README.md)

@@ -58,8 +58,8 @@ No API key needed. The `keyword` mode needs no model at all.
 This parallels chapter 6 of *AI Agents in Depth*.
 **The code is an independent rewrite**, and the selection is deliberate:
 
-| This repo | Book's version | Notes |
-|---|---|---|
-| 6-1 LLM-as-judge | agent evaluation | Built around measuring the *judge's* biases rather than an agent's score, with authored ground truth so bias is isolatable |
+| This repo | **Book's number** | Book's project | Notes |
+|---|---|---|---|
+| 6-1 LLM-as-judge | **6-5 / 6-6** | tts-quality-eval (LLM-as-judge + rubric), elo-leaderboard (pairwise / ELO) | Those two *use* a judge to score things; this lab inverts it and makes **the judge itself the subject**, measuring its verbosity bias, position bias and self-consistency |
 
 ← [back to the index](../../README.md)

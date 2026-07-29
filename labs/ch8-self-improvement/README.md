@@ -55,8 +55,8 @@ No API key needed.
 This parallels chapter 8 of *AI Agents in Depth*.
 **The code is an independent rewrite**, and the angle is deliberate:
 
-| This repo | Book's version | Notes |
-|---|---|---|
-| 8-1 Learning from failure | learning from experience | Scored mechanically as a failure curve across episodes, with one rule deliberately appearing only in the final episode so "didn't learn" can be separated from "never seen" |
+| This repo | **Book's number** | Book's project | Notes |
+|---|---|---|---|
+| 8-1 Learning from failure | **8-2** | gaia-experience | The book generates an experience document from successful / partial / failed trajectories; this lab scores a failure curve across episodes, with one rule deliberately appearing only in the final episode so "didn't learn" can be separated from "never seen". (The book's 8-1 is trajectory-verifier, a different thing) |
 
 ← [back to the index](../../README.md)

@@ -68,10 +68,10 @@ No API key needed.
 This parallels chapter 3 of *AI Agents in Depth* (13 companion projects there).
 **The code is an independent rewrite**, and the selection is deliberate:
 
-| This repo | Book's version | Notes |
-|---|---|---|
-| 3-1 User memory | user-memory, mem0, memobase | Framework-free, stdlib only. Writes a readable JSON memory file per strategy so you can diff them; adds automatic measurement of size / junk / stale facts |
-| 3-2 Retrieval from scratch | retrieval-pipeline, agentic-rag | BM25 hand-written in under 40 lines instead of a vector DB; recall is measured with no model involved, so that number is deterministic |
+| This repo | **Book's number** | Book's project | Notes |
+|---|---|---|---|
+| 3-1 User memory | **3-1, 3-2** | user-memory, mem0, memobase | Framework-free, stdlib only. Writes a readable JSON memory file per strategy so you can diff them; adds automatic measurement of size / junk / stale facts |
+| 3-2 Retrieval from scratch | **3-5** | sparse-embedding | That book project is itself "BM25 sparse retrieval from scratch" - the closest match (I previously mislabelled this as retrieval-pipeline / agentic-rag; corrected). This lab adds a model-free recall verdict |
 
 **Deliberately not attempted**: `dense-embedding`, `retrieval-pipeline`,
 `contextual-retrieval` and the other RAG projects — they need embedding models

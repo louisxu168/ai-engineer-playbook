@@ -61,9 +61,9 @@ This parallels chapter 5 of *AI Agents in Depth* (12 companion projects, from
 code-for-math to a production coding agent with 17 tools).
 **The code is an independent rewrite**, and the selection is deliberate:
 
-| This repo | Book's version | Notes |
-|---|---|---|
-| 5-1 Edit formats | coding-agent | The book builds a full agent with 17 tools; this lab isolates the single decision underneath it and measures it, with a real test suite as the verdict |
+| This repo | **Book's number** | Book's project | Notes |
+|---|---|---|---|
+| 5-1 Edit formats | **5-12** | coding-agent | The book builds a full agent with 17 tools; this lab isolates the single decision underneath it and measures it, with a real test suite as the verdict |
 
 **Deliberately not attempted**: `paper-to-ppt`, `paper-to-video`, `video-edit`,
 `conversational-ui` — they need Slidev, ffmpeg, TTS, or a React toolchain, which

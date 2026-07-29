@@ -148,7 +148,7 @@ Claude Code 用户还有个 slash command：
 |---|---|---|---|
 | [第 1 章](labs/ch1-agent-basics/README.zh-CN.md) | Agent 基础 | [1-1 上下文消融](labs/ch1-agent-basics/1-1-context/README.zh-CN.md) · [1-2 工具由谁来跑](labs/ch1-agent-basics/1-2-who-runs-the-tool/README.zh-CN.md) · [1-3 代码即工具](labs/ch1-agent-basics/1-3-code-as-a-tool/README.zh-CN.md) | ✅ 3 个可用 |
 | [第 2 章](labs/ch2-context-engineering/README.zh-CN.md) | 上下文工程 | [2-1 上下文压缩](labs/ch2-context-engineering/2-1-compaction/README.zh-CN.md) · [2-2 Prompt 注入](labs/ch2-context-engineering/2-2-prompt-injection/README.zh-CN.md) · [2-3 日志脱敏](labs/ch2-context-engineering/2-3-log-redaction/README.zh-CN.md) | ✅ 3 个可用 |
-| [第 3 章](labs/ch3-memory/README.zh-CN.md) | 记忆与知识 | [3-1 用户记忆](labs/ch3-memory/3-1-user-memory/README.zh-CN.md) · 从零写检索 | ✅ 1 个可用 |
+| [第 3 章](labs/ch3-memory/README.zh-CN.md) | 记忆与知识 | [3-1 用户记忆](labs/ch3-memory/3-1-user-memory/README.zh-CN.md) · [3-2 从零写检索](labs/ch3-memory/3-2-retrieval/README.zh-CN.md) | ✅ 2 个可用 |
 | 第 4 章 | 工具 | 工具设计（schema / 描述 / 错误回传）、异步工具 | 📋 计划中 |
 | 第 5 章 | Coding Agent 与代码生成 | 用代码算逻辑、最小 coding agent | 📋 计划中 |
 | 第 6 章 | Agent 的评估 | LLM-as-judge，以及它什么时候不靠谱 | 📋 计划中 |

@@ -16,7 +16,7 @@ reach the model.
 |---|---|---|---|
 | [2-1 Context compaction](2-1-compaction/) | When it no longer fits: do nothing / truncate / compact | All three cost something; you only choose where to pay. Compaction quality ≈ compaction-prompt quality | ✅ |
 | [2-2 Prompt injection](2-2-prompt-injection/) | What happens when a tool result carries instructions | Keyword filtering isn't a defence; a few sentences are | ✅ |
-| 2-3 Log sanitisation | What should never enter the context | 📋 Planned |
+| [2-3 Log redaction](2-3-log-redaction/) | What should never enter the context | Redaction must strip identity without stripping sameness | ✅ |
 
 ---
 
@@ -31,6 +31,13 @@ one cost?
 **2-1** is a good opener because its cost is fully quantifiable — the prompt size
 is printed every round, so you literally watch the bar grow and then get squeezed
 back down.
+
+**2-2 and 2-3 belong together**, and reading them in order produces an apparent
+contradiction worth sitting with: 2-2 measures keyword filtering *failing* to stop
+injection, while 2-3 measures regex filtering *succeeding* at stopping PII leakage.
+Same technique, opposite verdicts. The difference is whether there's an adversary
+who adapts to your rules — which turns out to be the first question worth asking
+about any security design.
 
 ---
 
@@ -55,8 +62,8 @@ This parallels chapter 2 of *AI Agents in Depth* (9 companion experiments there)
 | This repo | Book's version | Notes |
 |---|---|---|
 | 2-1 Context compaction | context-compression | Different task and implementation; adds a quantified size visualisation |
-| 2-2 Prompt injection (planned) | prompt-injection | |
-| 2-3 Log sanitisation (planned) | log-sanitization | |
+| 2-2 Prompt injection | prompt-injection | Adds an automatic attack-success judge, so defence effectiveness is measured rather than asserted |
+| 2-3 Log redaction | log-sanitization | Adds the three-way raw / redacted / tokenized contrast, so you see over-redaction destroy the task |
 
 **Deliberately not attempted**: `attention_visualization`, `kv-cache`,
 `local_llm_serving` — they need local model weights and GPU inference, which

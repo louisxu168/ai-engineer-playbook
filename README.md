@@ -165,7 +165,7 @@ folder** — download one and it runs.
 | [2](labs/ch2-context-engineering/) | Context engineering | [2-1 Compaction](labs/ch2-context-engineering/2-1-compaction/) · [2-2 Prompt injection](labs/ch2-context-engineering/2-2-prompt-injection/) · [2-3 Log redaction](labs/ch2-context-engineering/2-3-log-redaction/) | ✅ 3 ready |
 | [3](labs/ch3-memory/) | Memory & knowledge | [3-1 User memory](labs/ch3-memory/3-1-user-memory/) · [3-2 Retrieval from scratch](labs/ch3-memory/3-2-retrieval/) | ✅ 2 ready |
 | [4](labs/ch4-tools/) | Tools | [4-1 Tool design](labs/ch4-tools/4-1-tool-design/) · [4-2 Too many tools](labs/ch4-tools/4-2-tool-selection/) | ✅ 2 ready |
-| 5 | Coding agents | Code-as-reasoning, a minimal coding agent | 📋 Planned |
+| [5](labs/ch5-coding-agent/) | Coding agents | [5-1 Edit formats](labs/ch5-coding-agent/5-1-edit-formats/) · code as reasoning | ✅ 1 ready |
 | 6 | Evaluation | LLM-as-judge, and when it lies to you | 📋 Planned |
 | 7 | Post-training | Distillation, RL, post-training | 📋 Planned |
 | 8 | Continuous evolution | Learning from experience, self-improving prompts | 📋 Planned |

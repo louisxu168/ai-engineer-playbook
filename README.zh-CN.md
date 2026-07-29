@@ -150,7 +150,7 @@ Claude Code 用户还有个 slash command：
 | [第 2 章](labs/ch2-context-engineering/README.zh-CN.md) | 上下文工程 | [2-1 上下文压缩](labs/ch2-context-engineering/2-1-compaction/README.zh-CN.md) · [2-2 Prompt 注入](labs/ch2-context-engineering/2-2-prompt-injection/README.zh-CN.md) · [2-3 日志脱敏](labs/ch2-context-engineering/2-3-log-redaction/README.zh-CN.md) | ✅ 3 个可用 |
 | [第 3 章](labs/ch3-memory/README.zh-CN.md) | 记忆与知识 | [3-1 用户记忆](labs/ch3-memory/3-1-user-memory/README.zh-CN.md) · [3-2 从零写检索](labs/ch3-memory/3-2-retrieval/README.zh-CN.md) | ✅ 2 个可用 |
 | [第 4 章](labs/ch4-tools/README.zh-CN.md) | 工具 | [4-1 工具设计](labs/ch4-tools/4-1-tool-design/README.zh-CN.md) · [4-2 工具太多怎么办](labs/ch4-tools/4-2-tool-selection/README.zh-CN.md) | ✅ 2 个可用 |
-| 第 5 章 | Coding Agent 与代码生成 | 用代码算逻辑、最小 coding agent | 📋 计划中 |
+| [第 5 章](labs/ch5-coding-agent/README.zh-CN.md) | Coding Agent | [5-1 三种编辑格式](labs/ch5-coding-agent/5-1-edit-formats/README.zh-CN.md) · 用代码来「想」 | ✅ 1 个可用 |
 | 第 6 章 | Agent 的评估 | LLM-as-judge，以及它什么时候不靠谱 | 📋 计划中 |
 | 第 7 章 | 模型后训练 | 蒸馏、强化学习、后训练 | 📋 计划中 |
 | 第 8 章 | Agent 的持续进化 | 从经验中学习、自我改进 prompt | 📋 计划中 |

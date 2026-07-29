@@ -14,6 +14,7 @@
 |---|---|---|---|
 | [1-1 上下文消融](1-1-context/README.zh-CN.md) | Agent = LLM + 上下文 + 工具 | 上下文工程本质上就是对一段字符串做增删改 | ✅ |
 | [1-2 工具由谁来跑](1-2-who-runs-the-tool/README.zh-CN.md) | 厂商托管 vs 自己搭 harness | 选 hosted 时，你放弃的是可观测性 | ✅ |
+| [1-3 让 agent 写代码来「想」](1-3-code-as-a-tool/README.zh-CN.md) | Deep Research 循环；代码工具 | 给它代码不是因为它算不对，是因为你要能复现 | ✅ |
 
 ---
 

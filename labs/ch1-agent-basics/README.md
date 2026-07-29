@@ -15,6 +15,7 @@ If you've never written an agent before, start at 1-1 and go in order.
 |---|---|---|---|
 | [1-1 Context Ablation](1-1-context/) | Agent = LLM + context + tools | Context engineering is editing a string | ✅ |
 | [1-2 Who runs the tool?](1-2-who-runs-the-tool/) | Provider-hosted vs your own harness | Choosing hosted means giving up observability | ✅ |
+| [1-3 Code as a tool](1-3-code-as-a-tool/) | Deep research loop; code tools | You give it code for reproducibility, not accuracy | ✅ |
 
 ---
 

@@ -161,7 +161,7 @@ folder** — download one and it runs.
 
 | Ch | Topic | Labs | Status |
 |---|---|---|---|
-| [1](labs/ch1-agent-basics/) | Agent basics | [1-1 Context ablation](labs/ch1-agent-basics/1-1-context/) · [1-2 Who runs the tool?](labs/ch1-agent-basics/1-2-who-runs-the-tool/) | ✅ 2 ready |
+| [1](labs/ch1-agent-basics/) | Agent basics | [1-1 Context ablation](labs/ch1-agent-basics/1-1-context/) · [1-2 Who runs the tool?](labs/ch1-agent-basics/1-2-who-runs-the-tool/) · [1-3 Code as a tool](labs/ch1-agent-basics/1-3-code-as-a-tool/) | ✅ 3 ready |
 | 2 | Context engineering | Compaction, prompt injection, system-prompt ablation | 📋 Planned |
 | 3 | User memory & knowledge | File-based memory, agentic RAG vs naive RAG | 📋 Planned |
 | 4 | Tools | Tool design (schemas / descriptions / error feedback), async tools | 📋 Planned |

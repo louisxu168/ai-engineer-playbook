@@ -1,0 +1,5 @@
+# 没有 Python 依赖 —— 只用标准库。
+# 默认用你已装的 Claude Code / Codex（同本仓库其他实验）。
+#
+# 可选：加 --weak 参数改用本地 qwen3:0.6b 做对照，那需要 Ollama：
+#   brew install ollama && ollama serve && ollama pull qwen3:0.6b

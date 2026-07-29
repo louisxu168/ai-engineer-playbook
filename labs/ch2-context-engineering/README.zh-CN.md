@@ -18,6 +18,7 @@
 | [2-2 Prompt 注入攻防](2-2-prompt-injection/README.zh-CN.md) | 工具返回值里藏指令会怎样 | 关键词过滤不是防御；真正有效的是几句话 | ✅ |
 | [2-3 日志脱敏](2-3-log-redaction/README.zh-CN.md) | 哪些东西不该进上下文 | 脱敏要脱掉「身份」，不能脱掉「同一性」 | ✅ |
 | [2-4 五种错误的上下文管理](2-4-bad-context-patterns/README.zh-CN.md) | 破坏缓存 vs 破坏能力 | 两类破坏代价完全不同；滑动窗口两头都占 | ✅ |
+| [2-5 提示工程消融](2-5-prompt-ablation/README.zh-CN.md) | 语气 / 信息组织 / 工具描述，哪个在干活 | 书里「打乱组织掉 30%」没能复现；只有工具描述那一维还成立 | ✅ |
 
 ---
 
@@ -59,6 +60,7 @@ python3 agent.py            # 先看用法说明
 | 本仓库 | **原书编号** | 原书项目 | 说明 |
 |---|---|---|---|
 | 2-0 本地小模型 | **2-1** | local_llm_serving | 用 Ollama + qwen3:0.6b；额外量了 TTFT / 预填充，并**如实报告我没能复现前缀缓存失效** |
+| 2-5 提示工程消融 | **2-4** | prompt-engineering | 不用 τ-bench，换成一个调用顺序可机械判定的客服流程；加了 `--weak` 开关在本地 0.6B 上跑同一套，用来定位这条经验的**适用区间** |
 | 2-4 五种错误的上下文管理 | **2-3** | kv-cache | 历史程序化写死，五种策略处理同一份输入；同时量「缓存破坏」和「能力破坏」两类代价 |
 | 2-1 上下文压缩 | **2-9** | context-compression | 换了任务和实现；加了可量化的字符数可视化 |
 | 2-2 Prompt 注入攻防 | **2-5** | prompt-injection | 加了自动判定攻击成功与否的判据，防御有没有效是测出来的而不是说出来的 |
@@ -69,7 +71,6 @@ python3 agent.py            # 先看用法说明
 | 原书项目 | 编号 | 真正的门槛 |
 |---|---|---|
 | `attention_visualization` | 2-2, 2-7 | 要 `torch` + `transformers` 并取出注意力权重矩阵，依赖最重 |
-| `prompt-engineering` | 2-4 | 基于 τ-bench，要跑完整基准 |
 | `agent-skills-ppt` | 2-6 | 要 `python-pptx` 等额外依赖 |
 | `system-hint` | 2-8 | 可做，只是本仓库还没排到 |
 

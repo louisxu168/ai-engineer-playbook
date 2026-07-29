@@ -144,10 +144,13 @@ Claude Code 用户还有个 slash command：
 实验按**章**组织，章节划分参考《深入理解 AI Agent》，方便对照阅读。
 每个实验仍是**独立文件夹**，只下载一个也能跑。
 
+> ⚠️ **本仓库的实验编号是独立的**，只表示本仓库内的学习顺序，**不对应原书编号**。
+> 每章 README 底部的「对照原书」表里标了原书的真实编号。
+
 | 章 | 主题 | 本章实验 | 状态 |
 |---|---|---|---|
 | [第 1 章](labs/ch1-agent-basics/README.zh-CN.md) | Agent 基础 | [1-1 上下文消融](labs/ch1-agent-basics/1-1-context/README.zh-CN.md) · [1-2 工具由谁来跑](labs/ch1-agent-basics/1-2-who-runs-the-tool/README.zh-CN.md) · [1-3 代码即工具](labs/ch1-agent-basics/1-3-code-as-a-tool/README.zh-CN.md) | ✅ 3 个可用 |
-| [第 2 章](labs/ch2-context-engineering/README.zh-CN.md) | 上下文工程 | [2-1 上下文压缩](labs/ch2-context-engineering/2-1-compaction/README.zh-CN.md) · [2-2 Prompt 注入](labs/ch2-context-engineering/2-2-prompt-injection/README.zh-CN.md) · [2-3 日志脱敏](labs/ch2-context-engineering/2-3-log-redaction/README.zh-CN.md) | ✅ 3 个可用 |
+| [第 2 章](labs/ch2-context-engineering/README.zh-CN.md) | 上下文工程 | [2-0 本地小模型](labs/ch2-context-engineering/2-0-local-llm/README.zh-CN.md) · [2-1 上下文压缩](labs/ch2-context-engineering/2-1-compaction/README.zh-CN.md) · [2-2 Prompt 注入](labs/ch2-context-engineering/2-2-prompt-injection/README.zh-CN.md) · [2-3 日志脱敏](labs/ch2-context-engineering/2-3-log-redaction/README.zh-CN.md) | ✅ 4 个可用 |
 | [第 3 章](labs/ch3-memory/README.zh-CN.md) | 记忆与知识 | [3-1 用户记忆](labs/ch3-memory/3-1-user-memory/README.zh-CN.md) · [3-2 从零写检索](labs/ch3-memory/3-2-retrieval/README.zh-CN.md) | ✅ 2 个可用 |
 | [第 4 章](labs/ch4-tools/README.zh-CN.md) | 工具 | [4-1 工具设计](labs/ch4-tools/4-1-tool-design/README.zh-CN.md) · [4-2 工具太多怎么办](labs/ch4-tools/4-2-tool-selection/README.zh-CN.md) | ✅ 2 个可用 |
 | [第 5 章](labs/ch5-coding-agent/README.zh-CN.md) | Coding Agent | [5-1 三种编辑格式](labs/ch5-coding-agent/5-1-edit-formats/README.zh-CN.md) · 用代码来「想」 | ✅ 1 个可用 |

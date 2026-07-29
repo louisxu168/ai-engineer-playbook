@@ -13,6 +13,7 @@
 
 | 实验 | 主题 | 核心结论 | 状态 |
 |---|---|---|---|
+| [2-0 本地小模型](2-0-local-llm/README.zh-CN.md) | 在自己机器上跑 0.6B，看 API 底下 | 「原始输出」是分层的；本地部署一样会洗 | ✅ |
 | [2-1 上下文压缩](2-1-compaction/README.zh-CN.md) | 装不下了怎么办：不管 / 裁剪 / 压缩 | 三条路都要付钱，你只能选在哪付；压缩质量 ≈ 压缩提示词质量 | ✅ |
 | [2-2 Prompt 注入攻防](2-2-prompt-injection/README.zh-CN.md) | 工具返回值里藏指令会怎样 | 关键词过滤不是防御；真正有效的是几句话 | ✅ |
 | [2-3 日志脱敏](2-3-log-redaction/README.zh-CN.md) | 哪些东西不该进上下文 | 脱敏要脱掉「身份」，不能脱掉「同一性」 | ✅ |
@@ -54,14 +55,24 @@ python3 agent.py            # 先看用法说明
 本章对应《深入理解 AI Agent》第 2 章（共 9 个配套实验）。
 **代码是独立重写的**，选题也做了取舍：
 
-| 本仓库 | 原书对应 | 说明 |
-|---|---|---|
-| 2-1 上下文压缩 | context-compression | 换了任务和实现；加了可量化的字符数可视化 |
-| 2-2 Prompt 注入攻防 | prompt-injection | 加了自动判定攻击成功与否的判据，防御有没有效是测出来的而不是说出来的 |
-| 2-3 日志脱敏 | log-sanitization | 加了 raw / redacted / tokenized 三方对照，能亲眼看到「脱敏脱过头把任务弄没了」 |
+| 本仓库 | **原书编号** | 原书项目 | 说明 |
+|---|---|---|---|
+| 2-0 本地小模型 | **2-1** | local_llm_serving | 用 Ollama + qwen3:0.6b；额外量了 TTFT / 预填充，并**如实报告我没能复现前缀缓存失效** |
+| 2-1 上下文压缩 | **2-9** | context-compression | 换了任务和实现；加了可量化的字符数可视化 |
+| 2-2 Prompt 注入攻防 | **2-5** | prompt-injection | 加了自动判定攻击成功与否的判据，防御有没有效是测出来的而不是说出来的 |
+| 2-3 日志脱敏 | **3-3** | log-sanitization | 原书把它放在第 3 章编号下；加了 raw / redacted / tokenized 三方对照 |
 
-**原书里这几个我暂时不做**：`attention_visualization`、`kv-cache`、
-`local_llm_serving` —— 它们需要下载本地模型权重、跑 GPU 推理，
-和本仓库「零 API key、clone 下来就能跑」的前提直接冲突。想学这几个建议直接读原书。
+**原书里这几个我暂时不做，理由分开说清楚：**
+
+| 原书项目 | 编号 | 真正的门槛 |
+|---|---|---|
+| `kv-cache` | 2-3 | **实验 2-0 已经覆盖了一半**：它量了 TTFT 和预填充耗时，也做了前缀改动的对照——但**我没能复现「改前缀→缓存失效」**，如实写在 2-0 的 SOLUTION 里了。要把这条挖到底需要 vLLM 或读 llama.cpp 缓存实现 |
+| `attention_visualization` | 2-2, 2-7 | 要 `torch` + `transformers` 并取出注意力权重矩阵，依赖最重 |
+| `prompt-engineering` | 2-4 | 基于 τ-bench，要跑完整基准 |
+| `agent-skills-ppt` | 2-6 | 要 `python-pptx` 等额外依赖 |
+| `system-hint` | 2-8 | 可做，只是本仓库还没排到 |
+
+⚠️ 之前这里写的是「它们需要跑 GPU 推理」——**那是错的**，已更正。
+想学这几个建议直接读原书。
 
 ← [返回总目录](../../README.zh-CN.md)

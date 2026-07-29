@@ -14,6 +14,7 @@ reach the model.
 
 | Lab | Topic | Takeaway | Status |
 |---|---|---|---|
+| [2-0 A local small model](2-0-local-llm/) | Run a 0.6B on your own machine, look under the API | "Raw" is layered - local deployment washes the output too | ✅ |
 | [2-1 Context compaction](2-1-compaction/) | When it no longer fits: do nothing / truncate / compact | All three cost something; you only choose where to pay. Compaction quality ≈ compaction-prompt quality | ✅ |
 | [2-2 Prompt injection](2-2-prompt-injection/) | What happens when a tool result carries instructions | Keyword filtering isn't a defence; a few sentences are | ✅ |
 | [2-3 Log redaction](2-3-log-redaction/) | What should never enter the context | Redaction must strip identity without stripping sameness | ✅ |

@@ -1,0 +1,10 @@
+# 这个实验【没有】Python 依赖 —— 只用标准库。
+#
+# 它需要的是一个本地模型服务：
+#
+#   brew install ollama          # 或 https://ollama.com/download
+#   ollama serve                 # 另开一个终端让它一直跑
+#   ollama pull qwen3:0.6b       # 约 500MB，只需一次
+#
+# 不需要独立显卡/CUDA。Apple Silicon 上 Ollama 会用 Metal（芯片内置 GPU）。
+# 实测 M3 上 113~131 token/s。

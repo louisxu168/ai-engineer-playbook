@@ -63,10 +63,10 @@ python3 agent.py            # 先看用法说明
 本章对应《深入理解 AI Agent》第 3 章（共 13 个配套项目）。
 **代码是独立重写的**，选题也做了取舍：
 
-| 本仓库 | 原书对应 | 说明 |
-|---|---|---|
-| 3-1 用户记忆 | user-memory、mem0、memobase | 不依赖任何框架，只用标准库；每种策略写一个可读的 JSON 记忆文件供你 diff；加了体积 / 垃圾 / 过期事实的自动量测 |
-| 3-2 从零写检索 | retrieval-pipeline、agentic-rag | 不用向量库，40 行手写 BM25；召回率不需要模型就能算，所以那个数字是确定的 |
+| 本仓库 | **原书编号** | 原书项目 | 说明 |
+|---|---|---|---|
+| 3-1 用户记忆 | **3-1, 3-2** | user-memory、mem0、memobase | 不依赖任何框架，只用标准库；每种策略写一个可读的 JSON 记忆文件供你 diff；加了体积 / 垃圾 / 过期事实的自动量测 |
+| 3-2 从零写检索 | **3-5** | sparse-embedding | 原书这个项目正是「从零实现基于 BM25 的稀疏检索」，和本实验最接近（之前我错标成了 retrieval-pipeline / agentic-rag，已更正）；本实验多了一个不依赖模型的召回率判据 |
 
 **原书里这几个我暂时不做**：`dense-embedding`、`retrieval-pipeline`、
 `contextual-retrieval` 等 RAG 项目 —— 它们需要 embedding 模型

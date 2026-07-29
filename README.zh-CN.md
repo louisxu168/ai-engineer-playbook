@@ -155,7 +155,7 @@ Claude Code 用户还有个 slash command：
 | 第 7 章 | 模型后训练 | 蒸馏、强化学习、后训练 | 📋 计划中 |
 | 第 8 章 | Agent 的持续进化 | 从经验中学习、自我改进 prompt | 📋 计划中 |
 | 第 9 章 | 多模态与实时交互 | 语音、流式交互 | 📋 计划中 |
-| 第 10 章 | 多 Agent 协作 | 并行研究、子代理协作 | 📋 计划中 |
+| [第 10 章](labs/ch10-multi-agent/README.zh-CN.md) | 多 Agent 协作 | [10-1 单 vs 多 agent](labs/ch10-multi-agent/10-1-single-vs-multi/README.zh-CN.md) · 交接与共享状态 | ✅ 1 个可用 |
 
 ### 实验 1-1 长什么样
 

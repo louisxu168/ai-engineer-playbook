@@ -170,7 +170,7 @@ folder** — download one and it runs.
 | 7 | Post-training | Distillation, RL, post-training | 📋 Planned |
 | 8 | Continuous evolution | Learning from experience, self-improving prompts | 📋 Planned |
 | 9 | Multimodal & real-time | Speech, streaming interaction | 📋 Planned |
-| 10 | Multi-agent collaboration | Parallel research, subagent coordination | 📋 Planned |
+| [10](labs/ch10-multi-agent/) | Multi-agent collaboration | [10-1 One agent vs many](labs/ch10-multi-agent/10-1-single-vs-multi/) · handoffs | ✅ 1 ready |
 
 ### What lab 1-1 looks like
 

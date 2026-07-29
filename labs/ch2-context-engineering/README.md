@@ -18,6 +18,7 @@ reach the model.
 | [2-1 Context compaction](2-1-compaction/) | When it no longer fits: do nothing / truncate / compact | All three cost something; you only choose where to pay. Compaction quality ≈ compaction-prompt quality | ✅ |
 | [2-2 Prompt injection](2-2-prompt-injection/) | What happens when a tool result carries instructions | Keyword filtering isn't a defence; a few sentences are | ✅ |
 | [2-3 Log redaction](2-3-log-redaction/) | What should never enter the context | Redaction must strip identity without stripping sameness | ✅ |
+| [2-4 Bad context patterns](2-4-bad-context-patterns/) | Breaking the cache vs breaking capability | The two kinds of damage cost very differently; sliding windows do both | ✅ |
 
 ---
 

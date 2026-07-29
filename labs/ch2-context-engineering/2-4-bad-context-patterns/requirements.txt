@@ -1,0 +1,8 @@
+# 没有 Python 依赖 —— 只用标准库。
+#
+# 需要本地 Ollama（和实验 2-0 同一套）：
+#   brew install ollama
+#   ollama serve
+#   ollama pull qwen3:0.6b
+#
+# 为什么必须本地：只有它会报 prefill 耗时，云端 API 不暴露这个数。

@@ -212,7 +212,39 @@ on the first run, then 10–40 ms. Start or end, **no stable difference**.
 Stranger still: B's runs 2 and 3 used **brand-new IDs** (REQ-9001, REQ-9002), so the
 prefix genuinely differed — yet they were fast.
 
-### I don't know the exact cause; here are the candidates
+### ★ I later found the cause (lab 2-4 resolved it)
+
+After writing this section I built [lab 2-4](../2-4-bad-context-patterns/README.md),
+which **reproduces the cache effect cleanly**:
+
+```
+good (fully stable prefix)          prefill 148.9 ms -> run 2   7.9 ms   <- hit, 19x faster
+dynamic_prompt (timestamp at start) prefill 181.2 ms -> run 2 176.1 ms   <- NEVER hits
+```
+
+**Two independent runs agreed.**
+
+**So why did the attempt above fail? My methodology was flawed:**
+
+Group B used prefixes differing by only a few digits (REQ-9000, REQ-9001, REQ-9002),
+and I **alternated** between the stable and variant prompts. Ollama **caches several
+prefixes at once** — so while I thought I was measuring invalidation, each variant was
+hitting **its own** cache entry.
+
+Lab 2-4's `dynamic_prompt` uses a **microsecond timestamp**, making every call's prefix
+**one that has never been seen**, so it **can never hit** — and the effect appears
+immediately and cleanly.
+
+> **Lesson: my failure to reproduce wasn't because the effect isn't real; it was a hole
+> in my control group.** "Change the prefix" and "use a brand-new prefix every time" are
+> different things, and multi-slot caching quietly rescues the first one.
+>
+> **Which is why "couldn't reproduce" should make you suspect the method before the
+> claim** — the same lesson as labs 6-1 and 10-1.
+
+The candidates I listed at the time are below; candidate 1 turned out to be essentially right:
+
+### The candidates I listed at the time
 
 1. **Ollama / llama.cpp caches several prefixes at once** — so alternating between
    prompts keeps them all cached and hides the invalidation
@@ -220,8 +252,10 @@ prefix genuinely differed — yet they were fast.
    version, I can't confirm
 3. **The effect may require longer contexts, larger models, or a stack like vLLM**
 
-**I stopped digging**, because going further means reading llama.cpp's cache
-implementation, which is outside a teaching lab's scope. **Exercise 4 hands it to you.**
+**Candidate 1 was later confirmed by lab 2-4.** But note what 2-4 established: that
+**a genuinely novel prefix never hits the cache**. It does **not** answer whether
+changing the *start* differs from changing the *end* — **that position question is
+still open**, and exercise 4 hands it to you.
 
 ### But the failure produced something solid
 
@@ -281,9 +315,16 @@ this simple task the tool calls are **usually still correct**.
 > need it".** Thinking's value grows with task complexity. Using a simple task to
 > prove thinking is useless is the same error this repo keeps catching (labs 1-3, 4-2).
 
-### Exercise 4 ⭐⭐⭐ Dig out the KV cache effect
+### Exercise 4 ⭐⭐⭐ Dig out the *position* effect
 
-I didn't manage it. The most promising directions, in order:
+**Current status** (I built lab 2-4 after writing this):
+
+| Question | Status |
+|---|---|
+| Does a brand-new prefix hit the cache? | **Resolved**: no. Lab 2-4 reproduces it cleanly (149ms → 7.9ms vs 181ms → 176ms) |
+| Does changing the **start** differ from changing the **end**? | **Still open** ← yours to try |
+
+The most promising directions, in order:
 
 | Direction | Why it might work |
 |---|---|
@@ -294,14 +335,16 @@ I didn't manage it. The most promising directions, in order:
 
 **If you reproduce it, that's a real finding.**
 
-> The more valuable question: **why does nearly every article describe this effect
-> while I can't measure it on a real local stack?**
+> This episode already taught one lesson: **my first "couldn't reproduce" turned out
+> to be a hole in my control group** (several prefixes were all cached), not an
+> absent effect.
 >
-> My method may be wrong — or **the claim may not hold on many concrete stacks while
-> continuing to circulate as plausible-sounding common knowledge.**
+> So the order is: **suspect the method before the conclusion.** Had I written
+> "this claim doesn't hold in practice" at that point, I would have been **wrong**.
 >
-> This repo is now at **10 falsified expectations**.
-> **Technical folklore spreads much faster than it gets verified.**
+> But don't overcorrect either — **the position effect still hasn't been reproduced
+> by me**, and it circulates just as widely. **Both errors are worth guarding
+> against: credulity, and premature dismissal.**
 
 ### Exercise 5 ⭐⭐⭐ Ollama's native tools parameter
 

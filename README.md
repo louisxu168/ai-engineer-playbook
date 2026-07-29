@@ -166,7 +166,7 @@ folder** — download one and it runs.
 | Ch | Topic | Labs | Status |
 |---|---|---|---|
 | [1](labs/ch1-agent-basics/) | Agent basics | [1-1 Context ablation](labs/ch1-agent-basics/1-1-context/) · [1-2 Who runs the tool?](labs/ch1-agent-basics/1-2-who-runs-the-tool/) · [1-3 Code as a tool](labs/ch1-agent-basics/1-3-code-as-a-tool/) | ✅ 3 ready |
-| [2](labs/ch2-context-engineering/) | Context engineering | [2-0 Local small model](labs/ch2-context-engineering/2-0-local-llm/) · [2-1 Compaction](labs/ch2-context-engineering/2-1-compaction/) · [2-2 Prompt injection](labs/ch2-context-engineering/2-2-prompt-injection/) · [2-3 Log redaction](labs/ch2-context-engineering/2-3-log-redaction/) | ✅ 4 ready |
+| [2](labs/ch2-context-engineering/) | Context engineering | [2-0 Local small model](labs/ch2-context-engineering/2-0-local-llm/) · [2-1 Compaction](labs/ch2-context-engineering/2-1-compaction/) · [2-2 Prompt injection](labs/ch2-context-engineering/2-2-prompt-injection/) · [2-3 Log redaction](labs/ch2-context-engineering/2-3-log-redaction/) · [2-4 Bad context patterns](labs/ch2-context-engineering/2-4-bad-context-patterns/) | ✅ 5 ready |
 | [3](labs/ch3-memory/) | Memory & knowledge | [3-1 User memory](labs/ch3-memory/3-1-user-memory/) · [3-2 Retrieval from scratch](labs/ch3-memory/3-2-retrieval/) | ✅ 2 ready |
 | [4](labs/ch4-tools/) | Tools | [4-1 Tool design](labs/ch4-tools/4-1-tool-design/) · [4-2 Too many tools](labs/ch4-tools/4-2-tool-selection/) | ✅ 2 ready |
 | [5](labs/ch5-coding-agent/) | Coding agents | [5-1 Edit formats](labs/ch5-coding-agent/5-1-edit-formats/) · code as reasoning | ✅ 1 ready |

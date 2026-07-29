@@ -14,7 +14,7 @@ This chapter looks at them directly, and the finding is uncomfortable:
 | Lab | Topic | Takeaway | Status |
 |---|---|---|---|
 | [4-1 Tool design](4-1-tool-design/) | Descriptions × error messages, as a 2×2 | Error quality is worthless with good docs and decisive with bad ones | ✅ |
-| 4-2 Too many tools | Selecting from dozens of tools | 📋 Planned |
+| [4-2 Too many tools](4-2-tool-selection/) | Selecting from dozens of tools | The "20 tools" folklore didn't reproduce; the real cost is prompt length | ✅ |
 
 ---
 
@@ -40,6 +40,15 @@ interface fix.
 **The model out-engineered the tool.** Which is the chapter in one sentence: for
 tools that change the world, a vague error isn't slow — it's a hard stop, and
 halting is correct.
+
+**4-2** was built to reproduce a different piece of received wisdom — "models get
+confused past ~20 tools" — and **failed to**: 15/15 correct across 40 tools
+including 6 near-identical ones and three purpose-built keyword traps. What the
+measurement *did* find is that the cost is prompt length (331 → 1249 chars,
+re-paid every turn), and that retrieving tools to cut it introduces a failure mode
+"paste everything" doesn't have. That failure fires in the lab: BM25 ranks the
+correct tool 9th with a cutoff of 8, so the retrieval mode fails a task the
+all-40 mode solves.
 
 ---
 

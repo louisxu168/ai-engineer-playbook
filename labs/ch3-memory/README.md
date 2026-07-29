@@ -16,6 +16,7 @@ starts the moment a session ends:
 |---|---|---|---|
 | [3-1 User memory](3-1-user-memory/) | Store nothing / store everything / extract | A memory system's quality is decided by what it refuses to remember | ✅ |
 | [3-2 Retrieval from scratch](3-2-retrieval/) | When memory outgrows the context | Keyword search cannot find what shares no keywords with the query | ✅ |
+| [3-3 Log sanitization](3-3-log-sanitization/) | What should never enter the context | Redaction must strip identity without stripping sameness | ✅ |
 
 ---
 
@@ -30,7 +31,7 @@ read:  session starts -> fetch               -> paste into the context
 
 Four strategies, differing **only in the write**, produce wildly different
 results — and the difference between the two extraction modes is literally one
-prompt. Same law as lab 2-1: *compaction quality ≈ compaction-prompt quality;
+prompt. Same law as lab 2-9: *compaction quality ≈ compaction-prompt quality;
 memory quality ≈ extraction-prompt quality.*
 
 Then it walks into the wall that no prompt fixes: **what do you do when a fact
@@ -72,6 +73,7 @@ This parallels chapter 3 of *AI Agents in Depth* (13 companion projects there).
 |---|---|---|---|
 | 3-1 User memory | **3-1, 3-2** | user-memory, mem0, memobase | Framework-free, stdlib only. Writes a readable JSON memory file per strategy so you can diff them; adds automatic measurement of size / junk / stale facts |
 | 3-2 Retrieval from scratch | **3-5** | sparse-embedding | That book project is itself "BM25 sparse retrieval from scratch" - the closest match (I previously mislabelled this as retrieval-pipeline / agentic-rag; corrected). This lab adds a model-free recall verdict |
+| 3-3 Log sanitization | **3-3** | log-sanitization | Same number as the book; adds the three-way raw / redacted / tokenized contrast, so you see over-redaction destroy the task |
 
 **Deliberately not attempted**: `dense-embedding`, `retrieval-pipeline`,
 `contextual-retrieval` and the other RAG projects — they need embedding models

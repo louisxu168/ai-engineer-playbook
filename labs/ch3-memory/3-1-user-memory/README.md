@@ -183,7 +183,7 @@ else:
 `extract_good` spells out five criteria, and the load-bearing one is #2:
 **explicitly say what to throw away**.
 
-> Same law as lab 2-1:
+> Same law as lab 2-9:
 > **compaction quality ≈ compaction-prompt quality; memory quality ≈
 > extraction-prompt quality.**
 >

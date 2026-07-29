@@ -282,7 +282,7 @@ Delete criterion #2 and re-run: junk goes from 0 to somewhere between 2 and 5
 
 **Conclusion: of those five lines, #2 does most of the work.**
 
-Exactly matching lab 2-1's finding: in a compaction/extraction prompt, **"what to
+Exactly matching lab 2-9's finding: in a compaction/extraction prompt, **"what to
 drop" is worth more than "what to keep"** — because the model can guess what you
 want, and cannot guess what you don't.
 

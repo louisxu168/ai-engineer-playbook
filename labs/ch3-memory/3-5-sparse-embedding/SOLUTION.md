@@ -1,4 +1,4 @@
-# Lab 3-2 answers: retrieval from scratch
+# Lab 3-5 answers: retrieval from scratch
 
 **English** · [简体中文](SOLUTION.zh-CN.md)
 
@@ -264,7 +264,7 @@ Compare the rest of the repo:
 | 2-2 Injection | Does a specific marker appear | Almost never (we invented the marker) |
 | 2-3 Redaction | Regex match on sensitive formats | Yes (only knows its rule table) |
 | 3-1 Memory | Does a keyword appear | **Yes** (a false positive was measured) |
-| **3-2 Retrieval** | **Set membership** | **No** |
+| **3-5 Retrieval** | **Set membership** | **No** |
 
 So `stuff_all`'s and `keyword`'s recall are **fully determined** — change the model,
 change the day, run it a hundred times: still 3/3 and 1/3.

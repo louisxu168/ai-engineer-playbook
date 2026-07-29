@@ -1,4 +1,4 @@
-# Lab 3-2: Retrieval from scratch — why keywords miss what matters
+# Lab 3-5: Retrieval from scratch — why keywords miss what matters
 
 **English** · [简体中文](README.zh-CN.md)
 
@@ -61,7 +61,7 @@ missed. Real systems hold thousands, and then the `stuff_all` column doesn't exi
 ## Step 0: establish the ceiling (3 min)
 
 ```bash
-cd labs/ch3-memory/3-2-retrieval
+cd labs/ch3-memory/3-5-sparse-embedding
 python3 agent.py stuff_all
 ```
 

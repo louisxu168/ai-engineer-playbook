@@ -306,7 +306,7 @@ precondition for correctness.**
 | Lab | Verdict | Can it misjudge? |
 |---|---|---|
 | 3-1 Memory | keywords | Yes (measured) |
-| 3-2 Retrieval | set membership | No |
+| 3-5 Retrieval | set membership | No |
 | 4-1 Tools | compare against the one correct call | No |
 | **5-1 Editing** | **a real unittest run** | **No — and it checks *behaviour*, not shape** |
 

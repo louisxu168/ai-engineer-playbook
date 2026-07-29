@@ -144,14 +144,20 @@ Claude Code 用户还有个 slash command：
 实验按**章**组织，章节划分参考《深入理解 AI Agent》，方便对照阅读。
 每个实验仍是**独立文件夹**，只下载一个也能跑。
 
-> ⚠️ **本仓库的实验编号是独立的**，只表示本仓库内的学习顺序，**不对应原书编号**。
-> 每章 README 底部的「对照原书」表里标了原书的真实编号。
+> ⚠️ **编号规则分两种，看章：**
+>
+> - **第 2、3 章：编号沿用原书。** `2-3-kv-cache` 就是原书的实验 2-3 `kv-cache`，
+>   文件夹名 = 原书项目名，一一对应，不需要查表。
+> - **其余章节：编号是本仓库自己的**，只表示学习顺序，**不对应原书**。
+>   这些章我只做了部分实验，各章 README 里有对照表标注原书真实编号。
+>
+> 之所以只有 2、3 两章对齐：这两章我逐个项目核对过原书的项目表。
 
 | 章 | 主题 | 本章实验 | 状态 |
 |---|---|---|---|
 | [第 1 章](labs/ch1-agent-basics/README.zh-CN.md) | Agent 基础 | [1-1 上下文消融](labs/ch1-agent-basics/1-1-context/README.zh-CN.md) · [1-2 工具由谁来跑](labs/ch1-agent-basics/1-2-who-runs-the-tool/README.zh-CN.md) · [1-3 代码即工具](labs/ch1-agent-basics/1-3-code-as-a-tool/README.zh-CN.md) | ✅ 3 个可用 |
 | [第 2 章](labs/ch2-context-engineering/README.zh-CN.md) | 上下文工程 **（编号沿用原书）** | [2-1 本地 LLM 部署](labs/ch2-context-engineering/2-1-local-llm-serving/README.zh-CN.md) · [2-2 注意力可视化](labs/ch2-context-engineering/2-2-attention-visualization/README.zh-CN.md) · [2-3 KV Cache](labs/ch2-context-engineering/2-3-kv-cache/README.zh-CN.md) · [2-4 提示工程消融](labs/ch2-context-engineering/2-4-prompt-engineering/README.zh-CN.md) · [2-5 Prompt 注入](labs/ch2-context-engineering/2-5-prompt-injection/README.zh-CN.md) · [2-6 Agent Skills](labs/ch2-context-engineering/2-6-agent-skills/README.zh-CN.md) · [2-8 Agent 状态栏](labs/ch2-context-engineering/2-8-system-hint/README.zh-CN.md) · [2-9 上下文压缩](labs/ch2-context-engineering/2-9-context-compression/README.zh-CN.md) | ✅ **原书 8 个项目全做了** |
-| [第 3 章](labs/ch3-memory/README.zh-CN.md) | 记忆与知识 | [3-1 用户记忆](labs/ch3-memory/3-1-user-memory/README.zh-CN.md) · [3-2 从零写检索](labs/ch3-memory/3-2-retrieval/README.zh-CN.md) · [3-3 日志脱敏](labs/ch3-memory/3-3-log-sanitization/README.zh-CN.md) | ✅ 3 个可用 |
+| [第 3 章](labs/ch3-memory/README.zh-CN.md) | 记忆与知识 **（编号沿用原书）** | [3-1 用户记忆](labs/ch3-memory/3-1-user-memory/README.zh-CN.md) · [3-3 日志脱敏](labs/ch3-memory/3-3-log-sanitization/README.zh-CN.md) · [3-5 从零写检索](labs/ch3-memory/3-5-sparse-embedding/README.zh-CN.md) | ⚠️ 原书 13 个项目，做了 3 个 |
 | [第 4 章](labs/ch4-tools/README.zh-CN.md) | 工具 | [4-1 工具设计](labs/ch4-tools/4-1-tool-design/README.zh-CN.md) · [4-2 工具太多怎么办](labs/ch4-tools/4-2-tool-selection/README.zh-CN.md) | ✅ 2 个可用 |
 | [第 5 章](labs/ch5-coding-agent/README.zh-CN.md) | Coding Agent | [5-1 三种编辑格式](labs/ch5-coding-agent/5-1-edit-formats/README.zh-CN.md) · 用代码来「想」 | ✅ 1 个可用 |
 | [第 6 章](labs/ch6-evaluation/README.zh-CN.md) | 评估 | [6-1 LLM-as-judge](labs/ch6-evaluation/6-1-llm-as-judge/README.zh-CN.md) · 回归测试 | ✅ 1 个可用 |

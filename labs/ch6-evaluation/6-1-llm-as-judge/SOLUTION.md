@@ -365,7 +365,7 @@ Every lab in this repo has a verdict, and their reliability varies enormously:
 |---|---|---|---|
 | 3-1 Memory | keywords | **Yes** (measured) | ← literally `keyword` |
 | 2-3 Redaction | regex | Yes (only knows its rules) | |
-| 3-2 Retrieval | set membership | No | |
+| 3-5 Retrieval | set membership | No | |
 | 4-1 Tools | compare to the one correct call | No | |
 | 5-1 Editing | **a real test run** | No, and it checks **behaviour** | ← hardest |
 

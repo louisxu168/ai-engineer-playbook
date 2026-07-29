@@ -6,15 +6,78 @@
 
 > **上下文清空了。下周他再来，你怎么还认得他？**
 
+> **编号说明**：本章的文件夹名和编号**直接沿用原书**
+> （[《深入理解 AI Agent》第 3 章](https://bojieli.github.io/ai-agent-book/chapter3/)）。
+> `3-5-sparse-embedding` 就是原书的 3-5 `sparse-embedding`，一一对应，不需要查表。
+
 ---
 
-## 本章实验
+## 和原书一一对应：13 个项目，做了 3 个
 
-| 实验 | 主题 | 核心结论 | 状态 |
+原书第 3 章有 **13 个配套项目**。**本章目前只做了 3 个**，
+下面这张表就是原书那张表，逐行标注本仓库的状态：
+
+| 原书编号 | 原书项目 | 本仓库 | 状态 |
 |---|---|---|---|
-| [3-1 用户记忆](3-1-user-memory/README.zh-CN.md) | 不记 / 全记 / 提取 | 记忆系统的质量，取决于它拒绝记住什么 | ✅ |
-| [3-2 从零写检索](3-2-retrieval/README.zh-CN.md) | 记忆多到装不下之后 | 关键词搜不到「和查询不共享关键词」的东西 | ✅ |
-| [3-3 日志脱敏](3-3-log-sanitization/README.zh-CN.md) | 哪些东西不该进上下文 | 脱敏要脱掉「身份」，不能脱掉「同一性」 | ✅ |
+| **3-1**, **3-2** | `user-memory` | [3-1-user-memory](3-1-user-memory/README.zh-CN.md) | ✅ |
+| **3-1** | `user-memory-evaluation` | — | ⬜ 还没做 |
+| **3-2** | `mem0` · `memobase` | — | ⬜ 还没做 |
+| **3-3** | `log-sanitization` | [3-3-log-sanitization](3-3-log-sanitization/README.zh-CN.md) | ✅ |
+| **3-4** | `dense-embedding` | — | ⬜ 还没做 |
+| **3-5** | `sparse-embedding` | [3-5-sparse-embedding](3-5-sparse-embedding/README.zh-CN.md) | ✅ |
+| **3-6** | `retrieval-pipeline` | — | ⬜ 还没做 |
+| **3-7** | `multimodal-agent` | — | ⬜ 还没做 |
+| **3-8** | `structured-index` | — | ⬜ 还没做 |
+| **3-9** | `agentic-rag` | — | ⬜ 还没做 |
+| **3-10** | `agentic-rag-for-user-memory` | — | ⬜ 还没做 |
+| **3-11** | `contextual-retrieval` | — | ⬜ 还没做 |
+| **3-12** | `contextual-retrieval-for-user-memory` | — | ⬜ 还没做 |
+| **3-13** | `structured-knowledge-extraction` | — | ⬜ 还没做 |
+
+> 编号 3-1 和 3-2 各对应多个项目，这是**原书就这样**：
+> `user-memory` 占 3-1 和 3-2 两个编号，`user-memory-evaluation` 也在 3-1，
+> `mem0 · memobase` 是 3-2 的对照实现。
+
+### ⚠️ 更正一个我之前写错的理由
+
+这里以前写的是：那些 RAG 项目「需要 embedding 模型（本地权重或**付费 embedding API**），
+和本仓库『零 API key』的前提冲突」。
+
+**那个理由是错的**，我实测过了：
+
+```bash
+ollama pull nomic-embed-text          # 274MB
+curl http://127.0.0.1:11434/api/embed \
+  -d '{"model":"nomic-embed-text","input":"用户不吃辣"}'
+# → 768 维向量，零 API key，和第 2 章那套 Ollama 环境完全一样
+```
+
+所以 `dense-embedding`(3-4)、`retrieval-pipeline`(3-6)、`contextual-retrieval`(3-11)
+这些**技术上没有障碍**。它们没做的真实原因就一句话：**我还没做。**
+
+> 这和我在第 2 章犯的错是同一个：给「没做」编了一个技术理由，
+> 而那个理由我从来没验证过。第 2 章那三个后来全做了。
+
+`mem0 · memobase`(3-2) 是唯一有真实取舍的一个：它要装那两个第三方框架，
+而本仓库的 3-1 刻意只用标准库 —— 目的就是让你看清框架帮你做了什么。
+
+---
+
+## 已有的三个实验
+
+| 实验 | 主题 | 核心结论 |
+|---|---|---|
+| [3-1 用户记忆](3-1-user-memory/README.zh-CN.md) | 不记 / 全记 / 提取 | 记忆系统的质量，取决于它拒绝记住什么 |
+| [3-3 日志脱敏](3-3-log-sanitization/README.zh-CN.md) | 哪些东西不该进上下文 | 脱敏要脱掉「身份」，不能脱掉「同一性」 |
+| [3-5 从零写检索](3-5-sparse-embedding/README.zh-CN.md) | 记忆多到装不下之后 | 关键词搜不到「和查询不共享关键词」的东西 |
+
+**代码是独立重写的**：
+
+| 编号 | 和原书的差别 |
+|---|---|
+| 3-1 | 不依赖任何框架，只用标准库；每种策略写一个可读的 JSON 记忆文件供你 diff；加了体积 / 垃圾 / 过期事实的自动量测 |
+| 3-3 | 加了 raw / redacted / tokenized 三方对照，能看到过度脱敏把任务本身弄坏 |
+| 3-5 | 原书这个项目正是「从零实现基于 BM25 的稀疏检索」；本实验多了一个不依赖模型的召回率判据 |
 
 ---
 
@@ -33,16 +96,26 @@
 
 然后它会撞上一堵提示词修不好的墙：**事实变了怎么办？**
 实测四种策略没有一种能处理，原因就藏在一行代码里。
-这也正是 mem0、Memobase 这类真实记忆框架为什么长成那样。
+这也正是 mem0、Memobase 这类真实记忆框架为什么长成那样 ——
+也就是原书 3-2 那个对照实验要讲的东西。
 
-**3-2**接着 3-1 停下的地方：记忆装不下了，所以你必须**挑**着load。
+**3-5** 接着 3-1 停下的地方：记忆装不下了，所以你必须**挑**着加载。
 你会从零写一个 BM25，然后看着它以最要命的方式失效 ——
 被它漏掉的那条记忆，和问题**一个字都不重合**，所以它连候选都进不去。
 基于那次检索给出的回答，同时违反了用户的两条安全约束，
 而整份回答看起来**非常专业**。
 
+> **3-5 失效的那个地方，正是 embedding 存在的理由** ——
+> 也就是原书 3-4 `dense-embedding` 接着要讲的东西。
+> 想自己往下走：用上面那个 `nomic-embed-text`，把 BM25 的召回换成余弦相似度，
+> 看那条漏掉的记忆能不能被捞回来。
+
 两个实验合起来，你会看到问题的完整形状：
 **写的时候筛，丢的是永久的；读的时候筛，丢的是这一次的。两头都会丢，丢法不同。**
+
+**3-3** 是另一条线：不是「记不记得住」，而是「**该不该记**」。
+它和第 2 章的 2-5（Prompt 注入）连起来读会撞出一个矛盾，
+详见 [第 2 章索引](../ch2-context-engineering/README.zh-CN.md)。
 
 ---
 
@@ -56,25 +129,5 @@ python3 agent.py            # 先看用法说明
 ```
 
 不需要 API key。
-
----
-
-## 对照原书
-
-本章对应《深入理解 AI Agent》第 3 章（共 13 个配套项目）。
-**代码是独立重写的**，选题也做了取舍：
-
-| 本仓库 | **原书编号** | 原书项目 | 说明 |
-|---|---|---|---|
-| 3-1 用户记忆 | **3-1, 3-2** | user-memory、mem0、memobase | 不依赖任何框架，只用标准库；每种策略写一个可读的 JSON 记忆文件供你 diff；加了体积 / 垃圾 / 过期事实的自动量测 |
-| 3-2 从零写检索 | **3-5** | sparse-embedding | 原书这个项目正是「从零实现基于 BM25 的稀疏检索」，和本实验最接近（之前我错标成了 retrieval-pipeline / agentic-rag，已更正）；本实验多了一个不依赖模型的召回率判据 |
-| 3-3 日志脱敏 | **3-3** | log-sanitization | 编号和原书一致；加了 raw / redacted / tokenized 三方对照，能看到过度脱敏把任务本身弄坏 |
-
-**原书里这几个我暂时不做**：`dense-embedding`、`retrieval-pipeline`、
-`contextual-retrieval` 等 RAG 项目 —— 它们需要 embedding 模型
-（本地权重或付费 embedding API），和本仓库「零 API key、clone 下来就能跑」
-的前提冲突。3-2 用从零手写的 BM25 来讲**检索这件事本身**，
-并让你亲眼看到关键词检索在哪里失效 —— 那正是 embedding 存在的理由。
-想学生产级 RAG 建议直接读原书。
 
 ← [返回总目录](../../README.zh-CN.md)

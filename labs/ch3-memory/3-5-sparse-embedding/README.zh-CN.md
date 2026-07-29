@@ -1,4 +1,4 @@
-# 实验 3-2：从零写检索 —— 为什么关键词搜不到该搜的东西
+# 实验 3-5：从零写检索 —— 为什么关键词搜不到该搜的东西
 
 [English](README.md) · **简体中文**
 
@@ -58,7 +58,7 @@
 ## 第 0 步：先建立天花板（3 分钟）
 
 ```bash
-cd labs/ch3-memory/3-2-retrieval
+cd labs/ch3-memory/3-5-sparse-embedding
 python3 agent.py stuff_all
 ```
 

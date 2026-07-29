@@ -151,7 +151,7 @@ While `confusable` (all 40 tools) **gets it right**.
 
 **Retrieval hid the correct answer from the model.**
 
-Exactly lab 3-2's mechanism: the request says "no phone number, no app"; the tool
+Exactly lab 3-5's mechanism: the request says "no phone number, no app"; the tool
 description says "send an email to a customer" — **not one word in common**. BM25
 has nothing to work with.
 
@@ -220,7 +220,7 @@ Re-run `retrieved`.
 
 **Predict**: does the failing example recover?
 
-> That's **document expansion** (lab 3-2, exercise 3).
+> That's **document expansion** (lab 3-5, exercise 3).
 > **Note that it fixes two things at once**: retrieval can now find it, *and* the
 > model can distinguish it better. One good description pays off in both places —
 > another reason tool descriptions have such a high return.

@@ -1,4 +1,4 @@
-# TA notes — Lab 3-2
+# TA notes — Lab 3-5
 
 Read the repo-root `AGENTS.md` first. This file is specific to this lab.
 

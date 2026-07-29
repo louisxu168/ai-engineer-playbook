@@ -149,7 +149,7 @@ contains `app` — so **the two tools the request explicitly rules out ranked 1s
 >
 > **BM25 doesn't understand negation.** It has no concept of "not".
 
-Same wall as lab 3-2, hit from a different direction.
+Same wall as lab 3-5, hit from a different direction.
 
 ### English vs Chinese — the detail that should worry you most
 
@@ -294,7 +294,7 @@ Measured (English corpus, the failing example):
 But be wary of that last row: reaching 1st place required me to **already know how
 the question would be phrased**.
 
-> **That's document expansion's built-in limitation** (also noted in lab 3-2,
+> **That's document expansion's built-in limitation** (also noted in lab 3-5,
 > exercise 3): **you have to guess, at write time, how it will later be queried.**
 > Guess right and it's dramatic; guess wrong and you wrote nothing.
 

@@ -349,7 +349,7 @@ the same thing this repo keeps circling:
 | Lab | Give less vs give everything |
 |---|---|
 | 2-1 Compaction | summary vs full text |
-| 3-2 Retrieval | top-k vs all memories |
+| 3-5 Retrieval | top-k vs all memories |
 | 4-2 Tools | retrieved tools vs all tools |
 | **5-1 Editing** | **diff vs the whole file** |
 

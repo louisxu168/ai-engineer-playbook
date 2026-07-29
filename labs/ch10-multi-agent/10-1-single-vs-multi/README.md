@@ -14,7 +14,7 @@
 >
 > **How you'll learn it**: the verdict is mechanical — ground truth is 8 hard-coded
 > ids, and recall and false positives are set arithmetic. Same class of verdict as
-> lab 3-2, the most reliable kind in this repo.
+> lab 3-5, the most reliable kind in this repo.
 >
 > **Time**: 25 minutes.
 

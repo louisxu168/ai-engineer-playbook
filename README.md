@@ -159,15 +159,23 @@ Labs are grouped by **chapter**, following the structure of *AI Agents in Depth*
 so you can read the two side by side. Each lab is still a **self-contained
 folder** — download one and it runs.
 
-> ⚠️ **Lab numbers here are this repo's own**, indicating reading order within this
-> repo. **They do not correspond to the book's numbering.** Each chapter README's
-> "Relation to the source book" table gives the book's real numbers.
+> ⚠️ **Two numbering schemes, depending on the chapter:**
+>
+> - **Chapters 2 and 3 use the book's numbering.** `2-3-kv-cache` *is* the book's
+>   experiment 2-3 `kv-cache`; folder name = the book's project name, one-to-one, no
+>   lookup table needed.
+> - **Other chapters use this repo's own numbers**, indicating reading order only —
+>   they **do not** correspond to the book. Those chapters cover only some of the book's
+>   experiments; each chapter README maps them to the book's real numbers.
+>
+> Only 2 and 3 are aligned because those are the chapters I checked project by project
+> against the book's own table.
 
 | Ch | Topic | Labs | Status |
 |---|---|---|---|
 | [1](labs/ch1-agent-basics/) | Agent basics | [1-1 Context ablation](labs/ch1-agent-basics/1-1-context/) · [1-2 Who runs the tool?](labs/ch1-agent-basics/1-2-who-runs-the-tool/) · [1-3 Code as a tool](labs/ch1-agent-basics/1-3-code-as-a-tool/) | ✅ 3 ready |
 | [2](labs/ch2-context-engineering/) | Context engineering **(book's numbering)** | [2-1 Local LLM serving](labs/ch2-context-engineering/2-1-local-llm-serving/) · [2-2 Attention visualisation](labs/ch2-context-engineering/2-2-attention-visualization/) · [2-3 KV cache](labs/ch2-context-engineering/2-3-kv-cache/) · [2-4 Prompt engineering](labs/ch2-context-engineering/2-4-prompt-engineering/) · [2-5 Prompt injection](labs/ch2-context-engineering/2-5-prompt-injection/) · [2-6 Agent Skills](labs/ch2-context-engineering/2-6-agent-skills/) · [2-8 Agent status bar](labs/ch2-context-engineering/2-8-system-hint/) · [2-9 Context compression](labs/ch2-context-engineering/2-9-context-compression/) | ✅ **all 8 of the book's projects** |
-| [3](labs/ch3-memory/) | Memory & knowledge | [3-1 User memory](labs/ch3-memory/3-1-user-memory/) · [3-2 Retrieval from scratch](labs/ch3-memory/3-2-retrieval/) · [3-3 Log sanitization](labs/ch3-memory/3-3-log-sanitization/) | ✅ 3 ready |
+| [3](labs/ch3-memory/) | Memory & knowledge **(book's numbering)** | [3-1 User memory](labs/ch3-memory/3-1-user-memory/) · [3-3 Log sanitization](labs/ch3-memory/3-3-log-sanitization/) · [3-5 Retrieval from scratch](labs/ch3-memory/3-5-sparse-embedding/) | ⚠️ 3 of the book's 13 |
 | [4](labs/ch4-tools/) | Tools | [4-1 Tool design](labs/ch4-tools/4-1-tool-design/) · [4-2 Too many tools](labs/ch4-tools/4-2-tool-selection/) | ✅ 2 ready |
 | [5](labs/ch5-coding-agent/) | Coding agents | [5-1 Edit formats](labs/ch5-coding-agent/5-1-edit-formats/) · code as reasoning | ✅ 1 ready |
 | [6](labs/ch6-evaluation/) | Evaluation | [6-1 LLM-as-judge](labs/ch6-evaluation/6-1-llm-as-judge/) · regression suites | ✅ 1 ready |

@@ -314,7 +314,7 @@ TEXT = {
 
 ⚠️ 但检索不是白拿的：它引入了一个 few/many/confusable 都没有的失败模式 ——
    **万一没检索到那个正确的工具，后面选什么都不可能对。**
-   这就是实验 3-2 里的召回率天花板，一模一样。""",
+   这就是实验 3-5 里的召回率天花板，一模一样。""",
         "unknown_mode": "✗ 不认识的模式：",
         "exp_header": "# 实验 {i}/{total}：{mode}",
         "all_warning": "\n⚠️  all 模式要跑 4 个实验，不联网所以很快，大约 1～3 分钟。",
@@ -431,7 +431,7 @@ How to read this table:
 
 ! But retrieval isn't free: it adds a failure mode that few/many/confusable don't
   have - **if the right tool isn't retrieved, nothing downstream can be correct.**
-  Same recall ceiling as lab 3-2.""",
+  Same recall ceiling as lab 3-5.""",
         "unknown_mode": "x unknown mode: ",
         "exp_header": "# Experiment {i}/{total}: {mode}",
         "all_warning": "\n!  'all' runs 4 experiments. No network, so it's quick: 1-3 minutes.",
@@ -484,7 +484,7 @@ def t(key, **kwargs):
 
 
 # ==========================================================================
-#  第 3 部分：BM25（和实验 3-2 是同一份代码）
+#  第 3 部分：BM25（和实验 3-5 是同一份代码）
 # ==========================================================================
 #
 # 这里检索的对象从「用户记忆」换成了「工具描述」，算法一个字没改。

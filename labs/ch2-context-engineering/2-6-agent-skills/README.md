@@ -95,7 +95,7 @@ This lab is the **same shape** as the previous two:
 
 | Lab | Too many candidates | Who filters |
 |---|---|---|
-| 3-2 Retrieval | 36 memories | **BM25** (your code) |
+| 3-5 Retrieval | 36 memories | **BM25** (your code) |
 | 4-2 Tools | 40 tools | **BM25** (your code) |
 | **2-7 (this)** | 12 Skills | **the model itself** |
 
@@ -156,7 +156,7 @@ Copy the 12 Skills up to 100 and expand each detail doc to a few thousand words.
 **Predict**: how many does it load? Does it miss one?
 
 > Multi-hop loading is where progressive disclosure breaks most easily — the same
-> difficulty as [lab 3-2's exercise 5](../../ch3-memory/3-2-retrieval/README.md).
+> difficulty as [lab 3-5's exercise 5](../../ch3-memory/3-5-sparse-embedding/README.md).
 
 ### Exercise 4 ⭐⭐⭐ Hybrid: coarse retrieval, then self-loading
 

@@ -60,7 +60,7 @@ Three times now this repo has hit "too many candidates, filter before sending":
 
 | Lab | Candidates | Who filters |
 |---|---|---|
-| [3-2](../../ch3-memory/3-2-retrieval/README.md) | 36 memories | BM25 (your code) |
+| [3-2](../../ch3-memory/3-5-sparse-embedding/README.md) | 36 memories | BM25 (your code) |
 | [4-2](../../ch4-tools/4-2-tool-selection/README.md) | 40 tools | BM25 (your code) |
 | **2-7 (this)** | 12 Skills | **the model itself** |
 
@@ -139,7 +139,7 @@ At 100 Skills × thousands of words:
 "Excel data into a 16:9 deck" needs xlsx **and** pptx — and the failure mode is loading
 only one and answering too early.
 
-> Same difficulty as lab 3-2's multi-hop retrieval: **what to load second depends on what
+> Same difficulty as lab 3-5's multi-hop retrieval: **what to load second depends on what
 > the first load revealed.**
 
 ### Exercise 4 ⭐⭐⭐ Hybrid

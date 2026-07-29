@@ -1,0 +1,5 @@
+# 没有 Python 依赖 —— 只用标准库。
+# 默认用你已装的 Claude Code / Codex。
+#
+# 强烈建议加 --weak 用本地 qwen3:0.6b 跑（差别只在小模型上显现），那需要 Ollama：
+#   brew install ollama && ollama serve && ollama pull qwen3:0.6b

@@ -1,0 +1,2 @@
+# 没有 Python 依赖 —— 只用标准库。
+# 用你已装的 Claude Code / Codex（同本仓库大多数实验）。

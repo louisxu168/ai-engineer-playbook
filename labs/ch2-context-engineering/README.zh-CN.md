@@ -20,6 +20,7 @@
 | [2-4 五种错误的上下文管理](2-4-bad-context-patterns/README.zh-CN.md) | 破坏缓存 vs 破坏能力 | 两类破坏代价完全不同；滑动窗口两头都占 | ✅ |
 | [2-5 提示工程消融](2-5-prompt-ablation/README.zh-CN.md) | 语气 / 信息组织 / 工具描述，哪个在干活 | 书里「打乱组织掉 30%」没能复现；只有工具描述那一维还成立 | ✅ |
 | [2-6 Agent 状态栏](2-6-status-bar/README.zh-CN.md) | 让模型「查一眼」而不是「自己数」 | 书里的主张复现了；但赢的是 TODO——因为它给了替代动作 | ✅ |
+| [2-7 渐进式披露](2-7-agent-skills/README.zh-CN.md) | Agent Skills 按需加载 | 和检索同形，但筛选权在模型手里——修好了 4-2 那个坑 | ✅ |
 
 ---
 
@@ -61,6 +62,7 @@ python3 agent.py            # 先看用法说明
 | 本仓库 | **原书编号** | 原书项目 | 说明 |
 |---|---|---|---|
 | 2-0 本地小模型 | **2-1** | local_llm_serving | 用 Ollama + qwen3:0.6b；额外量了 TTFT / 预填充，并**如实报告我没能复现前缀缓存失效** |
+| 2-7 渐进式披露 | **2-6** | agent-skills-ppt | 不生成真的 .pptx（那要 python-pptx），只把**渐进式披露机制本身**拎出来量：判据是「答案含不含那个只写在第 3 层的参数格式」+ 上下文 token 数 |
 | 2-6 Agent 状态栏 | **2-7, 2-8** | attention_visualization（2-7 的场景）、system-hint / agent-status-bar | 用书里 2-7 那个 Xfinity 三通电话的场景，但换成**机械判据**（会不会打第 4 通）；在 0.6B 上 n=40 验证了书里那句「小模型对照组 A 经常违规」 |
 | 2-5 提示工程消融 | **2-4** | prompt-engineering | 不用 τ-bench，换成一个调用顺序可机械判定的客服流程；加了 `--weak` 开关在本地 0.6B 上跑同一套，用来定位这条经验的**适用区间** |
 | 2-4 五种错误的上下文管理 | **2-3** | kv-cache | 历史程序化写死，五种策略处理同一份输入；同时量「缓存破坏」和「能力破坏」两类代价 |
@@ -73,7 +75,6 @@ python3 agent.py            # 先看用法说明
 | 原书项目 | 编号 | 真正的门槛 |
 |---|---|---|
 | `attention_visualization` | 2-2, 2-7 | 要 `torch` + `transformers` 并取出注意力权重矩阵，依赖最重 |
-| `agent-skills-ppt` | 2-6 | 要 `python-pptx` 等额外依赖 |
 
 ⚠️ 之前这里写的是「它们需要跑 GPU 推理」——**那是错的**，已更正。
 另外 `local_llm_serving`（2-1）和 `kv-cache`（2-3）原来也在这张表里，

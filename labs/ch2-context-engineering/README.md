@@ -21,6 +21,7 @@ reach the model.
 | [2-4 Bad context patterns](2-4-bad-context-patterns/) | Breaking the cache vs breaking capability | The two kinds of damage cost very differently; sliding windows do both | ✅ |
 | [2-5 Prompt ablation](2-5-prompt-ablation/) | Tone / structure / tool descriptions - which does the work | The book's "scrambling costs 30%" didn't reproduce; only the tool-description dimension still holds | ✅ |
 | [2-6 Agent status bar](2-6-status-bar/) | Let it glance instead of recounting | The book's claim reproduces; but TODO wins - because it supplies an alternative action | ✅ |
+| [2-7 Progressive disclosure](2-7-agent-skills/) | Loading Agent Skills on demand | Same shape as retrieval, but the model does the filtering - which repairs lab 4-2's failure | ✅ |
 
 ---
 

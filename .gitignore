@@ -14,3 +14,6 @@ venv/
 .idea/
 .vscode/
 excalidraw.log
+
+# 实验 3-1 会把提取出来的记忆写成文件，那是运行产物
+memory_*.json

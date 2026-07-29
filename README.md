@@ -168,7 +168,7 @@ folder** — download one and it runs.
 | [5](labs/ch5-coding-agent/) | Coding agents | [5-1 Edit formats](labs/ch5-coding-agent/5-1-edit-formats/) · code as reasoning | ✅ 1 ready |
 | [6](labs/ch6-evaluation/) | Evaluation | [6-1 LLM-as-judge](labs/ch6-evaluation/6-1-llm-as-judge/) · regression suites | ✅ 1 ready |
 | 7 | Post-training | Distillation, RL, post-training | 📋 Planned |
-| 8 | Continuous evolution | Learning from experience, self-improving prompts | 📋 Planned |
+| [8](labs/ch8-self-improvement/) | Self-improvement | [8-1 Learning from failure](labs/ch8-self-improvement/8-1-learning-from-failure/) · self-improving prompts | ✅ 1 ready |
 | 9 | Multimodal & real-time | Speech, streaming interaction | 📋 Planned |
 | [10](labs/ch10-multi-agent/) | Multi-agent collaboration | [10-1 One agent vs many](labs/ch10-multi-agent/10-1-single-vs-multi/) · handoffs | ✅ 1 ready |
 

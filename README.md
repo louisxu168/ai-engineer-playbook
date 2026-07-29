@@ -166,7 +166,7 @@ folder** — download one and it runs.
 | [3](labs/ch3-memory/) | Memory & knowledge | [3-1 User memory](labs/ch3-memory/3-1-user-memory/) · [3-2 Retrieval from scratch](labs/ch3-memory/3-2-retrieval/) | ✅ 2 ready |
 | [4](labs/ch4-tools/) | Tools | [4-1 Tool design](labs/ch4-tools/4-1-tool-design/) · [4-2 Too many tools](labs/ch4-tools/4-2-tool-selection/) | ✅ 2 ready |
 | [5](labs/ch5-coding-agent/) | Coding agents | [5-1 Edit formats](labs/ch5-coding-agent/5-1-edit-formats/) · code as reasoning | ✅ 1 ready |
-| 6 | Evaluation | LLM-as-judge, and when it lies to you | 📋 Planned |
+| [6](labs/ch6-evaluation/) | Evaluation | [6-1 LLM-as-judge](labs/ch6-evaluation/6-1-llm-as-judge/) · regression suites | ✅ 1 ready |
 | 7 | Post-training | Distillation, RL, post-training | 📋 Planned |
 | 8 | Continuous evolution | Learning from experience, self-improving prompts | 📋 Planned |
 | 9 | Multimodal & real-time | Speech, streaming interaction | 📋 Planned |

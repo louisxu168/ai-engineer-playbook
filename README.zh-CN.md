@@ -147,7 +147,7 @@ Claude Code 用户还有个 slash command：
 | 章 | 主题 | 本章实验 | 状态 |
 |---|---|---|---|
 | [第 1 章](labs/ch1-agent-basics/README.zh-CN.md) | Agent 基础 | [1-1 上下文消融](labs/ch1-agent-basics/1-1-context/README.zh-CN.md) · [1-2 工具由谁来跑](labs/ch1-agent-basics/1-2-who-runs-the-tool/README.zh-CN.md) · [1-3 代码即工具](labs/ch1-agent-basics/1-3-code-as-a-tool/README.zh-CN.md) | ✅ 3 个可用 |
-| 第 2 章 | 上下文工程 | 上下文压缩、prompt 注入、system prompt 消融 | 📋 计划中 |
+| [第 2 章](labs/ch2-context-engineering/README.zh-CN.md) | 上下文工程 | [2-1 上下文压缩](labs/ch2-context-engineering/2-1-compaction/README.zh-CN.md) · prompt 注入 · 日志脱敏 | ✅ 1 个可用 |
 | 第 3 章 | 用户记忆与知识库 | 文件式记忆、agentic RAG vs 朴素 RAG | 📋 计划中 |
 | 第 4 章 | 工具 | 工具设计（schema / 描述 / 错误回传）、异步工具 | 📋 计划中 |
 | 第 5 章 | Coding Agent 与代码生成 | 用代码算逻辑、最小 coding agent | 📋 计划中 |

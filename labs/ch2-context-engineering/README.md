@@ -62,8 +62,15 @@ No API key needed.
 
 ## Relation to the source book
 
-This parallels chapter 2 of *AI Agents in Depth* (9 companion experiments there).
-**All 9 are now covered**, plus one the book numbers under chapter 3
+This parallels chapter 2 of *AI Agents in Depth*.
+
+The book's prose has **9 experiment numbers** (2-1 through 2-9), but only **8
+companion projects** — **experiments 2-2 and 2-7 share the single
+`attention_visualization` project** (2-2 covers the attention mechanism itself;
+2-7 uses the same tool to validate the agent status bar). That's why the book's
+project table has 8 rows with one of them numbered "2-2, 2-7".
+
+**All 9 numbers are now covered**, plus one the book files under chapter 3
 (log-sanitization). **The code is an independent rewrite**:
 
 | This repo | **Book's number** | Book's project | Notes |
@@ -74,7 +81,7 @@ This parallels chapter 2 of *AI Agents in Depth* (9 companion experiments there)
 | 2-3 Log redaction | **3-3** | log-sanitization | The book numbers it under chapter 3; adds the three-way raw / redacted / tokenized contrast |
 | 2-4 Bad context patterns | **2-3** | kv-cache | History is hardcoded; five strategies process the same input, measuring *cache* damage and *capability* damage separately |
 | 2-5 Prompt ablation | **2-4** | prompt-engineering | Not τ-bench — a support flow whose call *order* is mechanically checkable; a `--weak` flag runs the same suite on a local 0.6B to locate where the advice applies |
-| 2-6 Agent status bar | **2-7, 2-8** | attention_visualization (2-7's scenario), system-hint / agent-status-bar | Uses the book's Xfinity three-phone-call scenario but with a **mechanical verdict** (does it place a 4th call); n=40 on a 0.6B confirms the book's "the small model in group A violates often" |
+| 2-6 Agent status bar | **2-7, 2-8** | attention_visualization (2-7 uses it for the status-bar contrast), system-hint (2-8) | Uses the book's Xfinity three-phone-call scenario but with a **mechanical verdict** (does it place a 4th call); n=40 on a 0.6B confirms the book's "the small model in group A violates often" |
 | 2-7 Progressive disclosure | **2-6** | agent-skills-ppt | Doesn't generate a real .pptx (that needs python-pptx) — it isolates **the disclosure mechanism itself**: verdict = does the answer contain the parameter format that exists only in layer 3, plus context token count |
 | 2-8 Attention visualisation | **2-2, 2-7** | attention_visualization | Actually loads Qwen3-0.6B and pulls out the attention matrix (`attn_implementation="eager"`); quantitatively reproduces the book's 2-7 status-bar claim (3.8x per-char density) and **honestly reports that the dilution curve is not monotonic**, with the reason |
 

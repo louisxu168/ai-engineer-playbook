@@ -13,7 +13,7 @@
 | 实验 | 主题 | 核心结论 | 状态 |
 |---|---|---|---|
 | [1-1 上下文消融](1-1-context/README.zh-CN.md) | Agent = LLM + 上下文 + 工具 | 上下文工程本质上就是对一段字符串做增删改 | ✅ |
-| [1-2 工具由谁来跑](1-2-who-runs-the-tool/README.zh-CN.md) | 厂商托管 vs 自己搭 harness | 选 hosted 时，你放弃的是可观测性 | ✅ |
+| [1-2 工具：谁来跑，返回什么](1-2-who-runs-the-tool/README.zh-CN.md) | ① 厂商托管 vs 自己搭 harness ② 工具质量消融 | ① 选 hosted 放弃的是可观测性 ② 工具返回什么比循环怎么写更重要 | ✅ |
 | [1-3 让 agent 写代码来「想」](1-3-code-as-a-tool/README.zh-CN.md) | Deep Research 循环；代码工具 | 给它代码不是因为它算不对，是因为你要能复现 | ✅ |
 
 ---
@@ -67,7 +67,7 @@ python3 agent.py            # 先看用法说明
 | 本仓库 | **原书编号** | 原书项目 | 主要差别 |
 |---|---|---|---|
 | 1-1 上下文消融 | **1-1** | context | 换了任务和工具集；零 API key；加了并行工具调用 |
-| 1-2 工具由谁来跑 | **1-2** | web-search-agent | 用 Claude Code 自带 WebSearch 做 hosted 对照，维基百科 API 做 DIY 对照；多了三种工具降级模式 |
+| 1-2 工具：谁来跑，返回什么 | **1-2** | web-search-agent | 用 Claude Code 自带 WebSearch 做 hosted 对照，维基百科 API 做 DIY 对照；多了三种工具降级模式 |
 | 1-3 代码即工具 | **1-3** | search-codegen | 换成本地 `run_python` 沙箱 + 维基百科；重点从"算得准"改成"可复现" |
 
 （第 1 章是**唯一**编号和原书碰巧一致的一章。）

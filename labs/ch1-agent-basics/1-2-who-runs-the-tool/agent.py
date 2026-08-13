@@ -1,9 +1,9 @@
 """
-实验 1-2：工具由谁来跑？
+实验 1-2：工具 —— 谁来跑，以及它返回什么
 
-实验 1-1 问的是「上下文是什么」，这一个问的是另一件事：
+★ 这个实验有**两个独立的论点**，共用同一套代码。别把它们混在一起看。
 
-    当 agent 用工具时，**真正执行工具的是你，还是厂商？**
+论点 ①（hosted vs diy）：**当 agent 用工具时，真正执行工具的是你，还是厂商？**
 
 现在的模型很多自带工具。你直接问 Claude Code 一个问题，它会自己联网搜索、
 自己读网页、自己给答案 —— 你一行循环都没写。
@@ -12,8 +12,15 @@
 另一条路：工具你自己定义，循环你自己跑，模型只负责**说出**它想调什么。
 那正是实验 1-1 搭的东西。
 
-两条路都成立，只是代价不同。这个实验让你亲手体会那个代价 ——
-同一个问题，五种跑法。
+两条路都成立，只是代价不同 —— 你付出的是**可观测性**。
+
+论点 ②（no_search / diy_titles_only / diy_top1）：
+**同一个循环，工具好不好用，差别有多大？**
+
+这三种模式和「谁拥有 harness」**完全无关** —— 循环一直是你在跑，
+只是把工具依次削弱。结论是：**工具返回什么，比循环怎么写更重要。**
+
+同一个问题，五种跑法：前两种比论点 ①，后三种比论点 ②。
 
     python3 agent.py                 # 打印用法说明
     python3 agent.py hosted          # 厂商把整件事搞定
@@ -173,20 +180,24 @@ calls 是数组，互不依赖的工具可以一次全放进去。""",
 ⚠️  all 模式要跑 5 个实验，联网搜索比较慢，大约需要 4～10 分钟。""",
         "help": """
 ======================================================================
- 实验 02：工具由谁来跑？
+ 实验 02：工具 —— 谁来跑，以及它返回什么
 ======================================================================
 
-同一个问题，五种跑法。看的是「谁拥有 harness」。
+★ 两个独立的论点，共用同一套代码：
+
+  论点 ①  谁拥有那个 while 循环         → hosted vs diy
+  论点 ②  工具好不好用，差别有多大      → no_search / titles_only / top1
+          （这三种循环都是你在跑，和论点 ① 无关）
 
 用法：
     python3 agent.py <模式> ["自定义问题"]
 
-【核心三种】
+【论点 ①：谁拥有 harness】
     hosted            厂商跑搜索、也跑循环。你零行代码，也零可见性。
     diy               你跑循环、你实现搜索。每一步都看得见。
-    no_search         你跑循环，但不给它搜索工具（基线：它只能靠记忆）
 
-【工具降级两种】证明「工具返回什么，比循环怎么写更重要」
+【论点 ②：工具质量消融】循环一行不改，只削弱工具
+    no_search         完全不给它搜索工具（基线：只能靠记忆）
     diy_titles_only   search 只返回标题，不返回摘要
     diy_top1          search 只返回 1 条结果，而不是 3 条
 
@@ -322,20 +333,24 @@ Any ONE of these will do. Install it, come back to this folder, run again:
 !  'all' runs 5 experiments with live web searches: roughly 4-10 minutes.""",
         "help": """
 ======================================================================
- Lab 02: Who runs the tool?
+ Lab 02: Tools - who runs them, and what they return
 ======================================================================
 
-One question, five ways to answer it. The subject is: who owns the harness.
+* Two independent arguments sharing one codebase:
+
+  Argument 1  who owns the while loop        -> hosted vs diy
+  Argument 2  how much do the tools matter   -> no_search / titles_only / top1
+              (all three run YOUR loop; nothing to do with argument 1)
 
 Usage:
     python3 agent.py <mode> ["your own question"]
 
-THE CORE THREE
+ARGUMENT 1: who owns the harness
     hosted            provider runs search AND the loop. Zero code, zero visibility.
     diy               you run the loop and implement search. Everything visible.
-    no_search         you run the loop, but hand it no search tool (baseline)
 
-TWO DEGRADED TOOLS - proving the tool's OUTPUT shape matters more than the loop
+ARGUMENT 2: tool-quality ablation - the loop never changes, only the tools
+    no_search         hand it no search tool at all (baseline: memory only)
     diy_titles_only   search returns titles but no snippets
     diy_top1          search returns 1 hit instead of 3
 

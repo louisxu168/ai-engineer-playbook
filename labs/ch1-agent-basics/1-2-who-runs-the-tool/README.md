@@ -1,16 +1,27 @@
-# Lab 1-2: Who runs the tool?
+# Lab 1-2: Tools — who runs them, and what they return
 
 **English** · [简体中文](README.zh-CN.md)
 
-> **What you'll learn**
+> **This lab makes two independent arguments. Don't read them as one.**
 >
-> 1. Modern models ship with tools built in — you can build a web-searching agent **without writing a single loop**
-> 2. What you pay for that is **observability**: when it breaks you can't even tell which step it broke at
-> 3. `search` returns **leads, not answers** — that's the line between agentic search and naive RAG
+> **Argument 1 (steps 0–1): who owns the while loop.**
+> Modern models ship with tools built in, so you can build a web-searching agent
+> **without writing a single loop**. What you pay is **observability** — when it
+> breaks you can't even tell which step it broke at. Along the way you'll see that
+> `search` returns **leads, not answers**, which is the line between agentic search
+> and naive RAG.
 >
-> **How to work through it**: answer one question five ways and compare *who owns
-> the harness*. **Order matters — hosted first, then diy.** Reversed, the
-> contrast falls flat.
+> **Argument 2 (step 2): what the tool returns matters more than how the loop is
+> written.** Without changing a line of the loop, degrade the tools (no search /
+> titles only / one result) and the agent's capability collapses.
+>
+> Both arguments share the same code, which is why they're one lab — but they answer
+> **two different questions**, and step 2 will remind you when the switch happens.
+>
+> **How to work through it**: answer one question five ways — the first two compare
+> *who owns the harness* (argument 1), the last three compare *how good the tools are*
+> (argument 2). **Order matters — hosted first, then diy.** Reversed, the contrast
+> falls flat.
 >
 > **Time**: 15 minutes for the core, about 40 for everything.
 >
@@ -129,6 +140,17 @@ had to call `read`.
 ---
 
 ## Step 2: Break the tool (10 min)
+
+> ### ⚠️ The argument changes here
+>
+> Steps 0–1 asked **who** runs the loop — the provider, or you.
+> From here on **you always run the loop**, and the question becomes a different one:
+>
+> **Same loop — how much does the quality of the tools you feed it matter?**
+>
+> The three modes below (`no_search` / `diy_titles_only` / `diy_top1`) have **nothing
+> to do with who owns the harness**. They're all diy; the tools just get progressively
+> worse.
 
 Now prove something: **what the tool returns matters more than how the loop is written.**
 

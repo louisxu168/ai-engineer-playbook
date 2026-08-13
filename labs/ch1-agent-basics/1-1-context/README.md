@@ -279,6 +279,105 @@ loop:
 
 **The model is a planner that speaks JSON. You are its hands.**
 
+### The full version: how many exits does a loop have?
+
+Those six lines leave out something fatal — **checking only `tool_calls` is an infinite
+loop.** Nothing stops the model from naming a tool every round and never answering.
+
+A real loop needs at least this:
+
+```python
+trajectory = [ {role: "user", content: task} ]
+
+for round in 1 .. MAX_ROUNDS:                 # <- EXIT 3: hard round cap
+
+    prompt = STATIC_PREFIX + trajectory       # system prompt + tool defs, then
+                                              # the whole trajectory, resent every time
+
+    if length(prompt) > CONTEXT_LIMIT:        # <- EXIT 4: doesn't fit any more
+        trajectory = compact(trajectory)      #    note: compact and CONTINUE,
+                                              #    this is not a stop
+
+    reply = call_model(prompt)                # stateless: the server keeps nothing
+
+    if reply failed to parse:                 # <- EXIT 5: no JSON could be extracted
+        if retries_left: continue             #    retry - do NOT silently
+        else: raise ParseError                #    treat this as "finished"
+
+    trajectory.append(reply)                  # record what it said, immediately
+
+    if reply has "answer":                    # <- EXIT 1: it declared it's done
+        return reply.answer
+
+    if reply.tool_calls is empty:             # <- EXIT 2: it stopped asking for tools
+        return reply.content                  #    (equivalent to being done)
+
+    for call in reply.tool_calls:             # YOU execute; the model only named them
+        result = TOOLS[call.name](**call.args)
+        trajectory.append( {role: "tool", content: result} )
+
+return FAILED                                 # ran out of rounds without an answer
+                                              # <- this is a FAILURE, not a completion
+```
+
+**The exits, grouped:**
+
+| | Exit | Meaning |
+|---|---|---|
+| **Normal completion** | `answer` field present | it says it's done |
+| | `tool_calls` empty | it stopped asking for tools |
+| **Resource exhaustion** | round cap reached | ☠ **failure**, not completion |
+| | context won't fit | → compact, then **continue** |
+| | token / cost budget | any real system needs this |
+| **Anomaly** | parse failure | see the trap below |
+| | repeated / failing tool calls | loop detection |
+| | user interrupt, timeout | |
+
+**This lab implements exits 1, 2 and 3.** Exit 4 is
+[lab 2-9](../../ch2-context-engineering/2-9-context-compression/)'s subject; exit 5 is
+**deliberately absent here** — see why below.
+
+### ⚠️ A trap: parse failure and "completion" look identical
+
+`agent.py` does this:
+
+```python
+reply = parse_json_reply(raw_text)          # returns {} when nothing parses
+
+has_answer   = "answer" in reply            # {} -> False
+wanted_calls = extract_tool_calls(reply)    # {} -> []
+
+if has_answer or len(wanted_calls) == 0:    # <- {} lands HERE
+    answer = reply.get("answer") or raw_text.strip()
+```
+
+**An empty dict satisfies both "no answer" and "no tool_calls" at once**, so a parse
+failure gets reclassified as *completion* and the raw text is returned as the answer.
+
+That is **deliberate** in this lab — in `no_tool_calls` mode the model often replies in
+plain prose with no JSON to extract, and there the raw text really is the answer.
+
+The price: **a genuine parse failure (truncated output, drifted format) is silently
+treated as a completion.** The loop exits cleanly and returns plausible-looking garbage,
+**raising no error**.
+
+> This is the same shape as
+> [lab 6-1](../../ch6-evaluation/6-1-llm-as-judge/)'s JSON parse failure being recorded as
+> "the model is bad at this". Production systems must separate the two cases.
+
+### Why are there two "normal completion" exits?
+
+Exit 1 (`answer` field) and exit 2 (empty `tool_calls`) are redundant — **and exit 1 is a
+debt owed by the string-concatenation approach:**
+
+- **Structured tool-use APIs** need only exit 2: `stop_reason != "tool_use"` **is** the
+  stop signal. The model never declares an `answer` field.
+- **String-concatenation implementations** need exit 1, because there is no `stop_reason`
+  to read — the model has to announce "I'm finished" inside its own JSON.
+
+**Letting the model announce its own termination means it can forget to** — which is
+exactly why exit 3 (the round cap) has to exist as a backstop.
+
 ### The five parts of context
 
 | Part | Role | Written by |

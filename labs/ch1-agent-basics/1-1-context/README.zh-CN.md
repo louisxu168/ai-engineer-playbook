@@ -269,6 +269,101 @@ loop:
 
 **模型是个会说 JSON 的规划器，你是它的手。**
 
+### 完整版：一个循环有几个出口？
+
+上面那 6 行漏了一件要命的事 —— **只检查 `tool_calls` 是个死循环**。
+模型完全可以每轮都点名工具，永远不给答案。
+
+真实的循环至少要这样：
+
+```python
+trajectory = [ {role: "user", content: task} ]
+
+for round in 1 .. MAX_ROUNDS:                 # ← 出口 3：硬性轮数上限
+
+    prompt = STATIC_PREFIX + trajectory       # 系统提示词 + 工具定义，然后
+                                              # 整条轨迹，每轮重发一遍
+
+    if length(prompt) > CONTEXT_LIMIT:        # ← 出口 4：装不下了
+        trajectory = compact(trajectory)      #    注意是压缩后【继续】，不是停
+
+    reply = call_model(prompt)                # 无状态：服务器那边什么都不存
+
+    if reply failed to parse:                 # ← 出口 5：JSON 抠不出来
+        if retries_left: continue             #    重试 —— 千万别静默当成
+        else: raise ParseError                #    「它答完了」
+
+    trajectory.append(reply)                  # 它说的话，立刻记进轨迹
+
+    if reply has "answer":                    # ← 出口 1：它自己声明完成
+        return reply.answer
+
+    if reply.tool_calls is empty:             # ← 出口 2：它不再点名工具
+        return reply.content                  #    （等价于完成）
+
+    for call in reply.tool_calls:             # 你来执行，它只是点名
+        result = TOOLS[call.name](**call.args)
+        trajectory.append( {role: "tool", content: result} )
+
+return FAILED                                 # 跑满上限还没答案
+                                              # ← 这是【失败】，不是完成
+```
+
+**出口分三类：**
+
+| | 出口 | 语义 |
+|---|---|---|
+| **正常完成** | `answer` 字段存在 | 它说完了 |
+| | `tool_calls` 为空 | 它不再要工具（等价于说完了） |
+| **资源耗尽** | 轮数到上限 | ☠ **失败**，不是完成 |
+| | 上下文装不下 | → 压缩后**继续**，不是停 |
+| | token / 成本预算 | 真实系统必须有 |
+| **异常** | 解析失败 | 见下面那个坑 |
+| | 工具连续失败 / 反复调同一个 | 循环检测 |
+| | 用户中断、超时 | |
+
+**本实验实现了出口 1、2、3。** 出口 4 是[实验 2-9](../../ch2-context-engineering/2-9-context-compression/README.zh-CN.md)
+的主题；出口 5 本实验**故意没做**，原因见下。
+
+### ⚠️ 一个坑：解析失败和「完成」长得一模一样
+
+`agent.py` 里是这么写的：
+
+```python
+reply = parse_json_reply(raw_text)          # 抠不出 JSON 就返回 {}
+
+has_answer   = "answer" in reply            # {} → False
+wanted_calls = extract_tool_calls(reply)    # {} → []
+
+if has_answer or len(wanted_calls) == 0:    # ← {} 会走进这里！
+    answer = reply.get("answer") or raw_text.strip()
+```
+
+**空字典 `{}` 同时满足「没有 answer」和「没有 tool_calls」**，
+于是解析失败被当成「它答完了」，把原始文本直接当答案返回。
+
+这在本实验里是**故意的** —— `no_tool_calls` 模式下模型经常用大白话回答，
+没有 JSON 可抠，那时候原始文本确实就是答案。
+
+但代价是：**一次真正的解析失败（输出被截断、格式跑偏），会被静默当成一个「完成」。**
+循环正常退出，返回一段看起来像答案的垃圾，**不报错**。
+
+> 这和[实验 6-1](../../ch6-evaluation/6-1-llm-as-judge/README.zh-CN.md) 里
+> 「JSON 解析失败被记成模型能力差」是同一个形状。
+> 生产环境里要把这两种情况分开。
+
+### 为什么会有两个「正常完成」出口？
+
+出口 1（`answer` 字段）和出口 2（空 `tool_calls`）其实是冗余的 ——
+**而出口 1 是拼字符串这条路欠下的债：**
+
+- **真实 API**（结构化 tool use）只需要出口 2：`stop_reason != "tool_use"` **就是**停止信号，
+  模型根本不需要自己声明 `answer`。
+- **拼字符串的实现**必须有出口 1，因为你没有 `stop_reason` 可看，
+  只能让模型在 JSON 里自己说「我完事了」。
+
+**让模型自己声明终止，就意味着它可能忘了声明** —— 那就得靠出口 3（轮数上限）兜底。
+
 ### 上下文的五个组成部分
 
 | 部分 | 作用 | 谁写的 |

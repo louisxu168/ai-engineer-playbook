@@ -1,27 +1,40 @@
-# Lab 1-2: Tools — who runs them, and what they return
+# Lab 1-2: Tools decide what an agent can do
 
 **English** · [简体中文](README.zh-CN.md)
 
-> **This lab makes two independent arguments. Don't read them as one.**
+> **The argument in one line: an agent's ceiling is set by its tools — not by the
+> model, and not by the loop.**
 >
-> **Argument 1 (steps 0–1): who owns the while loop.**
+> Lab 1-1 already showed how little there is to the loop (five steps, a dozen lines).
+> This lab shows that **how you write those dozen lines matters far less than what
+> your tools hand back.**
+>
+> That argument raises two questions:
+>
+> **1. Who draws that boundary? (steps 0–1)**
 > Modern models ship with tools built in, so you can build a web-searching agent
-> **without writing a single loop**. What you pay is **observability** — when it
-> breaks you can't even tell which step it broke at. Along the way you'll see that
-> `search` returns **leads, not answers**, which is the line between agentic search
-> and naive RAG.
+> **without writing a single loop** — but then the boundary is the provider's, and you
+> can **neither see it nor change it**. The price is observability: when it breaks you
+> can't even tell which step it broke at.
 >
-> **Argument 2 (step 2): what the tool returns matters more than how the loop is
-> written.** Without changing a line of the loop, degrade the tools (no search /
-> titles only / one result) and the agent's capability collapses.
+> **2. How much does drawing it well matter? (step 2)**
+> Without changing a line of the loop, degrade the tools — no search / titles only /
+> one result — and the agent's capability collapses.
 >
-> Both arguments share the same code, which is why they're one lab — but they answer
-> **two different questions**, and step 2 will remind you when the switch happens.
+> **Those three modes are really an ablation over three tool-design parameters:**
 >
-> **How to work through it**: answer one question five ways — the first two compare
-> *who owns the harness* (argument 1), the last three compare *how good the tools are*
-> (argument 2). **Order matters — hosted first, then diy.** Reversed, the contrast
-> falls flat.
+> ```python
+> def search(query, limit=3, with_snippets=True):   # how many hits? snippets or not?
+> def read(title, chars=700):                       # how much text per hit?
+> ```
+>
+> How many, how much each, and whether to summarise — **those are the three decisions
+> every retrieval tool has to make.** You'll watch the agent break in a specific way
+> for each knob turned wrong.
+>
+> **How to work through it**: answer one question five ways — the first two ask *who
+> draws the boundary*, the last three ask *how much drawing it well matters*.
+> **Order matters — hosted first, then diy.** Reversed, the contrast falls flat.
 >
 > **Time**: 15 minutes for the core, about 40 for everything.
 >
@@ -141,16 +154,24 @@ had to call `read`.
 
 ## Step 2: Break the tool (10 min)
 
-> ### ⚠️ The argument changes here
+> ### 📍 From "who draws the boundary" to "how well it's drawn"
 >
-> Steps 0–1 asked **who** runs the loop — the provider, or you.
-> From here on **you always run the loop**, and the question becomes a different one:
+> Steps 0–1 asked **who** draws the boundary — the provider, or you.
+> From here the answer is fixed at "you": the loop is yours and so are the tools.
 >
-> **Same loop — how much does the quality of the tools you feed it matter?**
+> The question becomes: **when you draw that line, what happens if you pick the
+> parameters badly?**
 >
-> The three modes below (`no_search` / `diy_titles_only` / `diy_top1`) have **nothing
-> to do with who owns the harness**. They're all diy; the tools just get progressively
-> worse.
+> All three modes below are diy; the tools just get progressively worse:
+>
+> | Mode | Which knob |
+> |---|---|
+> | `no_search` | don't provide the tool at all |
+> | `diy_titles_only` | `with_snippets=False` — titles, no snippets |
+> | `diy_top1` | `limit=1` — one hit instead of three |
+>
+> **Those three lines are `search()`'s signature.** You are looking at the decisions
+> you'd face writing this tool yourself.
 
 Now prove something: **what the tool returns matters more than how the loop is written.**
 

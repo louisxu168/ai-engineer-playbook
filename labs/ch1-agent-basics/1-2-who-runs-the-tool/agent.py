@@ -1,9 +1,14 @@
 """
-实验 1-2：工具 —— 谁来跑，以及它返回什么
+实验 1-2：工具决定 agent 的能力边界
 
-★ 这个实验有**两个独立的论点**，共用同一套代码。别把它们混在一起看。
+★ 一句话论点：**agent 能做到什么，是被工具划死的** —— 不是被模型，也不是被循环。
 
-论点 ①（hosted vs diy）：**当 agent 用工具时，真正执行工具的是你，还是厂商？**
+实验 1-1 已经证明了循环那部分有多简单（5 步，十几行）。
+这里证明：**那十几行怎么写，远不如工具吐出来什么重要。**
+
+顺着这个论点有两个问题：
+
+问题 ①（hosted vs diy）：**这条边界由谁来划？**
 
 现在的模型很多自带工具。你直接问 Claude Code 一个问题，它会自己联网搜索、
 自己读网页、自己给答案 —— 你一行循环都没写。
@@ -14,13 +19,18 @@
 
 两条路都成立，只是代价不同 —— 你付出的是**可观测性**。
 
-论点 ②（no_search / diy_titles_only / diy_top1）：
-**同一个循环，工具好不好用，差别有多大？**
+问题 ②（no_search / diy_titles_only / diy_top1）：**划得好不好，差多少？**
 
-这三种模式和「谁拥有 harness」**完全无关** —— 循环一直是你在跑，
-只是把工具依次削弱。结论是：**工具返回什么，比循环怎么写更重要。**
+循环一直是你在跑，只是把工具依次削弱。而那三个削弱点，
+恰好就是本文件里 search / read 的三个参数：
 
-同一个问题，五种跑法：前两种比论点 ①，后三种比论点 ②。
+    def search(query, limit=3, with_snippets=True):   # 返回几条？带不带摘要？
+    def read(title, chars=700):                       # 每条返回多少字？
+
+**返回几条、每条多少、要不要摘要 —— 这就是任何检索类工具都要做的三个决定。**
+这一半在教你自己写工具时该怎么定这几个数。
+
+同一个问题，五种跑法：前两种问「谁划边界」，后三种问「划得好不好」。
 
     python3 agent.py                 # 打印用法说明
     python3 agent.py hosted          # 厂商把整件事搞定
@@ -180,26 +190,27 @@ calls 是数组，互不依赖的工具可以一次全放进去。""",
 ⚠️  all 模式要跑 5 个实验，联网搜索比较慢，大约需要 4～10 分钟。""",
         "help": """
 ======================================================================
- 实验 02：工具 —— 谁来跑，以及它返回什么
+ 实验 02：工具决定 agent 的能力边界
 ======================================================================
 
-★ 两个独立的论点，共用同一套代码：
+★ 论点：agent 能做到什么，是被工具划死的 —— 不是被模型，也不是被循环。
+  顺着它问两个问题：
 
-  论点 ①  谁拥有那个 while 循环         → hosted vs diy
-  论点 ②  工具好不好用，差别有多大      → no_search / titles_only / top1
-          （这三种循环都是你在跑，和论点 ① 无关）
+  ① 这条边界由谁来划？      → hosted vs diy
+  ② 划得好不好，差多少？    → no_search / titles_only / top1
+                             （循环都是你在跑，变的只是工具的参数）
 
 用法：
     python3 agent.py <模式> ["自定义问题"]
 
-【论点 ①：谁拥有 harness】
+【问题 ①：谁划边界】
     hosted            厂商跑搜索、也跑循环。你零行代码，也零可见性。
     diy               你跑循环、你实现搜索。每一步都看得见。
 
-【论点 ②：工具质量消融】循环一行不改，只削弱工具
-    no_search         完全不给它搜索工具（基线：只能靠记忆）
-    diy_titles_only   search 只返回标题，不返回摘要
-    diy_top1          search 只返回 1 条结果，而不是 3 条
+【问题 ②：划得好不好】循环一行不改，只拧工具的参数
+    no_search         干脆不给这个工具（基线：只能靠记忆）
+    diy_titles_only   with_snippets=False —— 只给标题，不给摘要
+    diy_top1          limit=1 —— 只给 1 条，不给 3 条
 
 【对比】
     all               五种全跑，最后打印对比表（约 4~10 分钟）
@@ -333,26 +344,29 @@ Any ONE of these will do. Install it, come back to this folder, run again:
 !  'all' runs 5 experiments with live web searches: roughly 4-10 minutes.""",
         "help": """
 ======================================================================
- Lab 02: Tools - who runs them, and what they return
+ Lab 02: Tools decide what an agent can do
 ======================================================================
 
-* Two independent arguments sharing one codebase:
+* The argument: an agent's ceiling is set by its tools - not by the model, and not
+  by the loop. That raises two questions:
 
-  Argument 1  who owns the while loop        -> hosted vs diy
-  Argument 2  how much do the tools matter   -> no_search / titles_only / top1
-              (all three run YOUR loop; nothing to do with argument 1)
+  1. Who draws that boundary?        -> hosted vs diy
+  2. How much does drawing it well
+     matter?                         -> no_search / titles_only / top1
+                                        (the loop is always yours; only the tool
+                                         parameters change)
 
 Usage:
     python3 agent.py <mode> ["your own question"]
 
-ARGUMENT 1: who owns the harness
+QUESTION 1: who draws the boundary
     hosted            provider runs search AND the loop. Zero code, zero visibility.
     diy               you run the loop and implement search. Everything visible.
 
-ARGUMENT 2: tool-quality ablation - the loop never changes, only the tools
-    no_search         hand it no search tool at all (baseline: memory only)
-    diy_titles_only   search returns titles but no snippets
-    diy_top1          search returns 1 hit instead of 3
+QUESTION 2: how much does drawing it well matter - only tool parameters change
+    no_search         don't provide the tool at all (baseline: memory only)
+    diy_titles_only   with_snippets=False - titles, no snippets
+    diy_top1          limit=1 - one hit instead of three
 
 COMPARISON
     all               run all five, then print a table (roughly 4-10 minutes)

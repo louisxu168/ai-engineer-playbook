@@ -14,7 +14,7 @@ If you've never written an agent before, start at 1-1 and go in order.
 | Lab | Topic | Takeaway | Status |
 |---|---|---|---|
 | [1-1 Context Ablation](1-1-context/) | Agent = LLM + context + tools | Context engineering is editing a string | ✅ |
-| [1-2 Tools: who runs them, what they return](1-2-who-runs-the-tool/) | (1) provider-hosted vs your own harness (2) tool-quality ablation | (1) choosing hosted means giving up observability (2) what the tool returns matters more than how the loop is written | ✅ |
+| [1-2 Tools decide what an agent can do](1-2-who-runs-the-tool/) | who draws the boundary (hosted vs diy) · how much drawing it well matters (tool-parameter ablation) | An agent's ceiling is set by its tools; choosing hosted means giving up observability | ✅ |
 | [1-3 Code as a tool](1-3-code-as-a-tool/) | Deep research loop; code tools | You give it code for reproducibility, not accuracy | ✅ |
 
 ---
@@ -72,7 +72,7 @@ and angle:
 | This repo | **Book's number** | Book's project | Main differences |
 |---|---|---|---|
 | 1-1 Context ablation | **1-1** | context | Different task and toolset; zero API key; adds parallel tool calls |
-| 1-2 Tools: who runs them, what they return | **1-2** | web-search-agent | Claude Code's built-in WebSearch as the hosted arm, the Wikipedia API as the DIY arm; adds three tool-degradation modes |
+| 1-2 Tools decide what an agent can do | **1-2** | web-search-agent | Claude Code's built-in WebSearch as the hosted arm, the Wikipedia API as the DIY arm; adds three tool-degradation modes |
 | 1-3 Code as a tool | **1-3** | search-codegen | A local `run_python` sandbox plus Wikipedia; reframed from accuracy to reproducibility |
 
 (Chapter 1 is the **only** chapter whose numbering happens to match the book's.)
